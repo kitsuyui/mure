@@ -11,6 +11,10 @@ pub fn get_default_branch() -> Result<String, Error> {
         .arg("--jq")
         .arg(".defaultBranchRef.name")
         .output()?;
+    if !result.status.success() {
+        let error = String::from_utf8(result.stderr).unwrap();
+        return Err(Error::from_str(&error));
+    }
     let raw_branch_name = String::from_utf8(result.stdout.to_vec());
     match raw_branch_name {
         Ok(branch_name) => Ok(branch_name.trim_end_matches('\n').to_string()),
@@ -27,7 +31,7 @@ mod tests {
             Ok(default_branch) => {
                 assert_eq!(default_branch, "main");
             }
-            Err(e) => unreachable!("{}", e),
+            _ => unreachable!("unreachable!"),
         }
     }
 }

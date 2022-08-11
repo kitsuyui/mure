@@ -26,6 +26,9 @@ jobs:
       - run: cargo clippy --all-targets --all-features -- -D warnings
 
       - run: cargo test
+        env:
+          # using in tests for gh
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - run: cargo build --release --all-features
 
@@ -33,6 +36,9 @@ jobs:
         run: |
           cargo install cargo-llvm-cov || true  # when already cached
           cargo llvm-cov --lcov --output-path coverage.lcov
+        env:
+          # using in tests for gh
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v3
