@@ -13,7 +13,7 @@ pub fn get_default_branch() -> Result<String, Error> {
         .output()?;
     let raw_branch_name = String::from_utf8(result.stdout.to_vec());
     match raw_branch_name {
-        Ok(branch_name) => Ok(branch_name.strip_suffix('\n').unwrap().to_string()),
+        Ok(branch_name) => Ok(branch_name.trim_end_matches('\n').to_string()),
         Err(e) => Err(Error::from_str(&e.to_string())),
     }
 }
