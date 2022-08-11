@@ -1,12 +1,18 @@
 use clap::App;
+mod git;
+mod refresh;
 
 fn main() {
     let cmd = parser();
     let matches = cmd.get_matches();
     match matches.subcommand() {
-        Some(("refresh", matches)) => {
-            println!("refresh");
-            println!("{:?}", matches);
+        Some(("refresh", _)) => {
+            // TODO: use match matches.subcommand()
+            // matches;
+            match refresh::command::refresh() {
+                Ok(_) => (),
+                Err(e) => println!("{}", e),
+            }
         }
         Some(("issues", matches)) => {
             println!("issues");

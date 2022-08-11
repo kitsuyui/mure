@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 clap = "3.2.16"
+git2 = "0.15.0"
+mktemp = "0.4.1"
