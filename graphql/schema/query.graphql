@@ -1,0 +1,22 @@
+query SearchRepositoryQuery($query: String!) {
+  repos: search(query: $query, type: REPOSITORY, first: 100) {
+    edges {
+      node {
+        __typename
+        ... on Repository {
+          url
+          name
+          defaultBranchRef {
+            name
+          }
+          issues(states: OPEN) {
+            totalCount
+          }
+          pullRequests(states: OPEN) {
+            totalCount
+          }
+        }
+      }
+    }
+  }
+}
