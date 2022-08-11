@@ -1,5 +1,6 @@
 use clap::App;
-mod config_file;
+mod clone;
+mod config;
 mod gh;
 mod git;
 mod github;
@@ -8,14 +9,7 @@ mod mure_error;
 mod refresh;
 
 fn main() {
-    match config_file::get_config() {
-        Ok(conf) => {
-            print!("{:?}", conf.github.username);
-        }
-        Err(e) => {
-            println!("{:?}", e);
-        }
-    }
+    let config = config::get_config().expect("config error");
     let cmd = parser();
     let matches = cmd.get_matches();
     match matches.subcommand() {
@@ -34,6 +28,13 @@ fn main() {
             Ok(_) => (),
             Err(e) => println!("{}", e),
         },
+        Some(("clone", matches)) => {
+            let repo_url = matches.get_one::<String>("url").unwrap();
+            match clone::clone(&config, repo_url) {
+                Ok(_) => (),
+                Err(e) => println!("{}", e),
+            }
+        }
         _ => unreachable!("unreachable!"),
     };
 }
@@ -48,11 +49,18 @@ fn parser() -> App<'static> {
             .index(1),
     );
     let subcommand_issues = App::new("issues").about("show issues");
+    let subcommand_clone = App::new("clone").about("clone repository").arg(
+        clap::Arg::with_name("url")
+            .help("repository url")
+            .required(true)
+            .index(1),
+    );
     let cmd = clap::Command::new("mure")
         .bin_name("mure")
         .subcommand_required(true)
         .subcommand(subcommand_refresh)
-        .subcommand(subcommand_issues);
+        .subcommand(subcommand_issues)
+        .subcommand(subcommand_clone);
     cmd
 }
 
@@ -71,6 +79,15 @@ fn test_parser() {
     match cmd.get_matches_from_safe(["mure", "issues"]) {
         Ok(matches) => {
             assert_eq!(matches.subcommand_name(), Some("issues"));
+        }
+        Err(e) => {
+            unreachable!("{}", e);
+        }
+    }
+    let cmd = parser();
+    match cmd.get_matches_from_safe(["mure", "clone", "https://github.com/kitsuyui/mure"]) {
+        Ok(matches) => {
+            assert_eq!(matches.subcommand_name(), Some("clone"));
         }
         Err(e) => {
             unreachable!("{}", e);

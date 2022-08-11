@@ -2,7 +2,7 @@
 //!
 //! Usually config file is located at ~/.mure.toml
 
-use std::io::Error;
+use std::{io::Error, path::{PathBuf, Path}};
 
 use serde_derive::Deserialize;
 
@@ -21,6 +21,29 @@ pub struct Core {
 pub struct GitHub {
     // TODO: try .gitconfig.user.name if not set
     pub username: String,
+}
+
+pub trait ConfigService {
+    fn base_path(&self) -> PathBuf;
+    fn repos_store_path(&self) -> PathBuf;
+    fn repo_store_path(&self, domain: &str, owner: &str, repo: &str) -> PathBuf;
+    fn repo_work_path(&self, domain: &str, owner: &str, repo: &str) -> PathBuf;
+}
+
+impl ConfigService for Config {
+    fn base_path(&self) -> PathBuf {
+        let expand_path = shellexpand::tilde(self.core.base_dir.as_str()).to_string();
+        Path::new(expand_path.as_str()).to_path_buf()
+    }
+    fn repos_store_path(&self) -> PathBuf {
+        self.base_path().join("repo")
+    }
+    fn repo_store_path(&self, domain: &str, owner: &str, repo: &str) -> PathBuf {
+        self.repos_store_path().join(domain).join(owner).join(repo)
+    }
+    fn repo_work_path(&self, _domain: &str, _owner: &str, repo: &str) -> PathBuf {
+        self.base_path().join(repo)
+    }
 }
 
 /// read $HOME/.mure.toml to get config
