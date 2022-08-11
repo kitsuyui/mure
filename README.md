@@ -37,6 +37,11 @@ mure clone <url>
 
 `mure issues` shows the list of issues and pull requests of all repositories.
 
+Example:
+
+<img width="1023" alt="example-mure-issues" src="https://user-images.githubusercontent.com/2596972/184259022-cb428537-f12e-41b0-8b49-a72565afa167.png">
+
+
 ### mure refresh
 
 `mure refresh` updates the repository.
