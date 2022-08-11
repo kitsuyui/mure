@@ -2,6 +2,7 @@
 use git2::{BranchType, Error, Repository};
 
 pub trait RepositoryWrapper {
+    fn is_clean(&self) -> Result<bool, Error>;
     fn exists_unsaved(&self) -> Result<bool, Error>;
     fn is_remote_exists(&self) -> Result<bool, Error>;
     fn get_current_branch(&self) -> Result<String, Error>;
@@ -10,6 +11,9 @@ pub trait RepositoryWrapper {
 impl RepositoryWrapper for Repository {
     fn exists_unsaved(&self) -> Result<bool, Error> {
         Ok(!self.statuses(None)?.is_empty())
+    }
+    fn is_clean(&self) -> Result<bool, Error> {
+        Ok(!self.exists_unsaved()?)
     }
     fn is_remote_exists(&self) -> Result<bool, Error> {
         Ok(!self.remotes()?.is_empty())

@@ -1,6 +1,8 @@
 use clap::App;
 mod config_file;
+mod gh;
 mod git;
+mod mure_error;
 mod refresh;
 
 fn main() {
@@ -18,7 +20,8 @@ fn main() {
         Some(("refresh", _)) => {
             // TODO: use match matches.subcommand()
             // matches;
-            match refresh::command::refresh() {
+            let current_dir = std::env::current_dir().unwrap();
+            match refresh::command::refresh(current_dir.to_str().unwrap()) {
                 Ok(_) => (),
                 Err(e) => println!("{}", e),
             }
