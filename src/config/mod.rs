@@ -2,7 +2,10 @@
 //!
 //! Usually config file is located at ~/.mure.toml
 
-use std::{io::Error, path::{PathBuf, Path}};
+use std::{
+    io::Error,
+    path::{Path, PathBuf},
+};
 
 use serde_derive::Deserialize;
 
