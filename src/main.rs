@@ -19,7 +19,7 @@ fn main() {
                 Some(repo) => repo.to_string(),
                 None => current_dir.to_str().unwrap().to_string(),
             };
-            match refresh::command::refresh(&repo_path) {
+            match refresh::refresh(&repo_path) {
                 Ok(_) => (),
                 Err(e) => println!("{}", e),
             }
