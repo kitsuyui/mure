@@ -1,9 +1,8 @@
-use std::{
-    io::{Error, ErrorKind},
-    process::Command,
-};
+use crate::mure_error::Error;
+use std::process::Command;
 
 pub fn get_default_branch() -> Result<String, Error> {
+    // TODO: if gh is not installed, return error
     let result = Command::new("gh")
         .arg("repo")
         .arg("view")
@@ -15,7 +14,7 @@ pub fn get_default_branch() -> Result<String, Error> {
     let raw_branch_name = String::from_utf8(result.stdout.to_vec());
     match raw_branch_name {
         Ok(branch_name) => Ok(branch_name.strip_suffix('\n').unwrap().to_string()),
-        Err(e) => Err(Error::new(ErrorKind::Other, e)),
+        Err(e) => Err(Error::from_str(&e.to_string())),
     }
 }
 
