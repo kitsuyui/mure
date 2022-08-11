@@ -1,8 +1,17 @@
 use clap::App;
+mod config_file;
 mod git;
 mod refresh;
 
 fn main() {
+    match config_file::get_config() {
+        Ok(conf) => {
+            print!("{:?}", conf.github.username);
+        }
+        Err(e) => {
+            println!("{:?}", e);
+        }
+    }
     let cmd = parser();
     let matches = cmd.get_matches();
     match matches.subcommand() {
@@ -24,6 +33,7 @@ fn main() {
 
 /// Parser
 fn parser() -> App<'static> {
+    // TODO: subcommand "init" to create ~/.mure.toml
     let subcommand_refresh = App::new("refresh").about("refresh repository");
     let subcommand_issues = App::new("issues").about("show issues");
     let cmd = clap::Command::new("mure")

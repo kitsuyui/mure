@@ -20,7 +20,6 @@ pub fn refresh() -> Result<(), Error> {
     }
 
     // TODO:
-
     // get default branch: gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name'
     // let current_branch = repo.get_current_branch()?;
     // if current branch is not default branch, checkout default branch and pull
