@@ -30,6 +30,8 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
 
     let default_branch = get_default_branch()?;
     // git pull --ff-only origin "$default_branch":"$default_branch"
+
+    // TODO: origin is hardcoded. If you have multiple remotes, you need to specify which one to use.
     Command::new("git")
         .arg("pull")
         .arg("--ff-only")
