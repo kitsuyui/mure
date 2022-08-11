@@ -2,6 +2,8 @@ use clap::App;
 mod config_file;
 mod gh;
 mod git;
+mod github;
+mod issues;
 mod mure_error;
 mod refresh;
 
@@ -28,10 +30,10 @@ fn main() {
                 Err(e) => println!("{}", e),
             }
         }
-        Some(("issues", matches)) => {
-            println!("issues");
-            println!("{:?}", matches);
-        }
+        Some(("issues", _)) => match issues::show_issues() {
+            Ok(_) => (),
+            Err(e) => println!("{}", e),
+        },
         _ => unreachable!("unreachable!"),
     };
 }

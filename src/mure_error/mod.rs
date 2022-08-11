@@ -37,3 +37,9 @@ impl From<std::io::Error> for Error {
         Error::from_str(&e.to_string())
     }
 }
+
+impl From<reqwest::Error> for Error {
+    fn from(e: reqwest::Error) -> Error {
+        Error::from_str(&e.to_string())
+    }
+}
