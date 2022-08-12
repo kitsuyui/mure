@@ -44,7 +44,7 @@ impl RepositoryWrapper for Repository {
 mod tests {
     use super::*;
     use mktemp::Temp;
-    use std::io::Write;
+    use std::{io::Write, process::Command};
 
     #[test]
     fn test_is_empty() {
@@ -130,6 +130,7 @@ mod tests {
             .set_str("user.email", "test@example.com")
             .unwrap();
 
+        assert!(repo.is_clean().unwrap(), "repo is clean when initialized");
         assert!(
             !repo.exists_unsaved().unwrap(),
             "repo is clean when initialized"
@@ -141,6 +142,7 @@ mod tests {
         file.write_all("hello".as_bytes()).unwrap();
         file.sync_all().unwrap();
 
+        assert!(!repo.is_clean().unwrap(), "repo is dirty because of file");
         assert!(
             repo.exists_unsaved().unwrap(),
             "repo is dirty because of file"
@@ -159,6 +161,35 @@ mod tests {
         repo.commit(Some("HEAD"), &sig, &sig, "initial commit", &tree, &[])
             .unwrap();
 
+        assert!(repo.is_clean().unwrap(), "repo is clean after commit");
+        assert!(
+            !repo.exists_unsaved().unwrap(),
+            "repo is clean after commit"
+        );
+
+        // git checkout -b feature
+        Command::new("git")
+            .args(&["switch", "-c", "feature"])
+            .current_dir(path)
+            .output()
+            .unwrap();
+
+        // write file
+        let filepath = temp_dir.join("something2.txt");
+        let mut file = std::fs::File::create(filepath).unwrap();
+        file.write_all("hello".as_bytes()).unwrap();
+        file.sync_all().unwrap();
+
+        assert!(!repo.is_clean().unwrap(), "unstaged file is dirty");
+        assert!(repo.exists_unsaved().unwrap(), "unstaged file is dirty");
+
+        Command::new("git")
+            .args(&["add", "something2.txt"])
+            .current_dir(path)
+            .output()
+            .unwrap();
+
+        assert!(repo.is_clean().unwrap(), "repo is clean after commit");
         assert!(
             !repo.exists_unsaved().unwrap(),
             "repo is clean after commit"
