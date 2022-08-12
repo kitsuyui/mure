@@ -3,13 +3,13 @@ use git2::{BranchType, Error, Repository};
 
 pub trait RepositoryWrapper {
     fn is_clean(&self) -> Result<bool, Error>;
-    fn exists_unsaved(&self) -> Result<bool, Error>;
+    fn has_unsaved(&self) -> Result<bool, Error>;
     fn is_remote_exists(&self) -> Result<bool, Error>;
     fn get_current_branch(&self) -> Result<String, Error>;
 }
 
 impl RepositoryWrapper for Repository {
-    fn exists_unsaved(&self) -> Result<bool, Error> {
+    fn has_unsaved(&self) -> Result<bool, Error> {
         for entry in self.statuses(None)?.iter() {
             match entry.status() {
                 git2::Status::CURRENT => continue,
@@ -22,7 +22,7 @@ impl RepositoryWrapper for Repository {
         Ok(false)
     }
     fn is_clean(&self) -> Result<bool, Error> {
-        Ok(!self.exists_unsaved()?)
+        Ok(!self.has_unsaved()?)
     }
     fn is_remote_exists(&self) -> Result<bool, Error> {
         Ok(!self.remotes()?.is_empty())
@@ -132,7 +132,7 @@ mod tests {
 
         assert!(repo.is_clean().unwrap(), "repo is clean when initialized");
         assert!(
-            !repo.exists_unsaved().unwrap(),
+            !repo.has_unsaved().unwrap(),
             "repo is clean when initialized"
         );
 
@@ -143,10 +143,7 @@ mod tests {
         file.sync_all().unwrap();
 
         assert!(!repo.is_clean().unwrap(), "repo is dirty because of file");
-        assert!(
-            repo.exists_unsaved().unwrap(),
-            "repo is dirty because of file"
-        );
+        assert!(repo.has_unsaved().unwrap(), "repo is dirty because of file");
 
         // git commit -m "initial commit"
         let sig = repo.signature().unwrap();
@@ -162,10 +159,7 @@ mod tests {
             .unwrap();
 
         assert!(repo.is_clean().unwrap(), "repo is clean after commit");
-        assert!(
-            !repo.exists_unsaved().unwrap(),
-            "repo is clean after commit"
-        );
+        assert!(!repo.has_unsaved().unwrap(), "repo is clean after commit");
 
         // git checkout -b feature
         Command::new("git")
@@ -181,7 +175,7 @@ mod tests {
         file.sync_all().unwrap();
 
         assert!(!repo.is_clean().unwrap(), "unstaged file is dirty");
-        assert!(repo.exists_unsaved().unwrap(), "unstaged file is dirty");
+        assert!(repo.has_unsaved().unwrap(), "unstaged file is dirty");
 
         Command::new("git")
             .args(&["add", "something2.txt"])
@@ -190,10 +184,7 @@ mod tests {
             .unwrap();
 
         assert!(repo.is_clean().unwrap(), "repo is clean after commit");
-        assert!(
-            !repo.exists_unsaved().unwrap(),
-            "repo is clean after commit"
-        );
+        assert!(!repo.has_unsaved().unwrap(), "repo is clean after commit");
     }
 
     #[test]
