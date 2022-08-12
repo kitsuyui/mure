@@ -10,7 +10,16 @@ pub trait RepositoryWrapper {
 
 impl RepositoryWrapper for Repository {
     fn exists_unsaved(&self) -> Result<bool, Error> {
-        Ok(!self.statuses(None)?.is_empty())
+        for entry in self.statuses(None)?.iter() {
+            match entry.status() {
+                git2::Status::CURRENT => continue,
+                git2::Status::WT_NEW | git2::Status::WT_MODIFIED | git2::Status::WT_DELETED => {
+                    return Ok(true);
+                }
+                _ => {}
+            }
+        }
+        Ok(false)
     }
     fn is_clean(&self) -> Result<bool, Error> {
         Ok(!self.exists_unsaved()?)
