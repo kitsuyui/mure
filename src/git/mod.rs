@@ -2,6 +2,7 @@
 use git2::{BranchType, Error, Repository};
 
 pub trait RepositoryWrapper {
+    fn merged_branches(&self) -> Result<Vec<String>, Error>;
     fn is_clean(&self) -> Result<bool, Error>;
     fn has_unsaved(&self) -> Result<bool, Error>;
     fn is_remote_exists(&self) -> Result<bool, Error>;
@@ -9,6 +10,24 @@ pub trait RepositoryWrapper {
 }
 
 impl RepositoryWrapper for Repository {
+    fn merged_branches(&self) -> Result<Vec<String>, Error> {
+        let mut branches = Vec::new();
+        // git for-each-ref --format='%(refname)' 'refs/heads/**/*' --merged
+        for branch in self.branches(Some(BranchType::Local))? {
+            let (branch, branch_type) = branch?;
+            if branch_type == BranchType::Local {
+                let name = branch.name()?;
+                match name {
+                    Some(name_) => {
+                        let name__ = name_.to_string();
+                        branches.push(name__);
+                    }
+                    None => {}
+                }
+            }
+        }
+        Ok(branches)
+    }
     fn has_unsaved(&self) -> Result<bool, Error> {
         for entry in self.statuses(None)?.iter() {
             match entry.status() {
