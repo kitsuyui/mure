@@ -116,7 +116,7 @@ mod tests {
                 .as_os_str()
                 .to_str()
                 .expect("failed to get path");
-            let repo = Repository::init(path).unwrap();
+            let repo = Repository::init(path)?;
             let me = TestRepository {
                 repo,
                 _temp_dir: temp_dir,
@@ -126,31 +126,24 @@ mod tests {
         }
         /// Set dummy profile.
         fn set_dummy_profile(&self) -> Result<(), Error> {
-            let repo = &self.repo;
             // git config user.name "test"
-            repo.config()
-                .unwrap()
-                .set_str("user.name", "tester")
-                .unwrap();
             // git config user.email "test@example.com"
-            repo.config()
-                .unwrap()
-                .set_str("user.email", "test@example.com")
-                .unwrap();
+            let repo = &self.repo;
+            repo.config()?.set_str("user.name", "tester")?;
+            repo.config()?.set_str("user.email", "test@example.com")?;
             Ok(())
         }
         /// Create empty commit.
         fn create_empty_commit(&self, message: &str) -> Result<(), Error> {
             let repo = &self.repo;
             // git commit --allow-empty -m "initial commit"
-            let sig = repo.signature().unwrap();
+            let sig = repo.signature()?;
             let tree_id = {
-                let mut index = repo.index().unwrap();
-                index.write_tree().unwrap()
+                let mut index = repo.index()?;
+                index.write_tree()?
             };
-            let tree = repo.find_tree(tree_id).unwrap();
-            repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[])
-                .unwrap();
+            let tree = repo.find_tree(tree_id)?;
+            repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[])?;
             Ok(())
         }
     }
