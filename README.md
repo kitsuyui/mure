@@ -20,6 +20,10 @@ $HOME/.dev/repo ... repositories directory
 
 When you clone a repository, it will be clone into the `$HOME/.dev/repo/github.com/{owner}/{repo}` directory.
 
+## requirements
+
+- `GH_TOKEN` environment variable is required for authentication.
+
 ### `mure init`
 
 Generate `.mure.toml` file in home directory.
