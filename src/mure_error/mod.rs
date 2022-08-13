@@ -9,14 +9,14 @@ pub struct Error {
 impl Error {
     pub fn from_str(message: &str) -> Error {
         Error {
-            message: message.to_string(),
+            message: String::from(message),
         }
     }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "something went wrong!")
+        write!(f, "{}", self.message)
     }
 }
 
@@ -40,6 +40,18 @@ impl From<std::io::Error> for Error {
 
 impl From<reqwest::Error> for Error {
     fn from(e: reqwest::Error) -> Error {
+        Error::from_str(&e.to_string())
+    }
+}
+
+impl From<toml::de::Error> for Error {
+    fn from(e: toml::de::Error) -> Error {
+        Error::from_str(&e.to_string())
+    }
+}
+
+impl From<toml::ser::Error> for Error {
+    fn from(e: toml::ser::Error) -> Error {
         Error::from_str(&e.to_string())
     }
 }

@@ -1,7 +1,7 @@
 use git2::Repository;
 
 use crate::gh::get_default_branch;
-use crate::git::RepositoryWrapper;
+use crate::git::RepositorySupport;
 use crate::mure_error::Error;
 use std::process::Command;
 

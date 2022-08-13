@@ -1,6 +1,6 @@
 use std::process::Command;
 
-use crate::{config::ConfigService, mure_error::Error};
+use crate::{config::ConfigSupport, mure_error::Error};
 use regex::Regex;
 use std::os::unix::fs;
 

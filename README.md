@@ -20,9 +20,21 @@ $HOME/.dev/repo ... repositories directory
 
 When you clone a repository, it will be clone into the `$HOME/.dev/repo/github.com/{owner}/{repo}` directory.
 
-### `mure init` (Not implemented yet)
+## requirements
+
+- `GH_TOKEN` environment variable is required for authentication.
+
+### `mure init`
 
 Generate `.mure.toml` file in home directory.
+
+```toml
+[core]
+base_dir = "~/.dev"
+
+[github]
+username = "kitsuyui"
+```
 
 ### mure clone
 
@@ -40,7 +52,6 @@ mure clone <url>
 Example:
 
 <img width="1023" alt="example-mure-issues" src="https://user-images.githubusercontent.com/2596972/184259022-cb428537-f12e-41b0-8b49-a72565afa167.png">
-
 
 ### mure refresh
 
