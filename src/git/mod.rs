@@ -11,6 +11,7 @@ pub trait RepositorySupport {
     fn has_unsaved(&self) -> Result<bool, Error>;
     fn is_remote_exists(&self) -> Result<bool, Error>;
     fn get_current_branch(&self) -> Result<String, Error>;
+    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<(), Error>;
     fn command(&self, args: &[&str]) -> Result<Output, Error>;
 }
 
@@ -60,6 +61,10 @@ impl RepositorySupport for Repository {
             Some(branch_name) => Ok(branch_name.to_owned()),
             None => unreachable!("unreachable!"),
         }
+    }
+    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<(), Error> {
+        self.command(&["pull", "--ff-only", remote, branch, branch])?;
+        Ok(())
     }
     fn command(&self, args: &[&str]) -> Result<Output, Error> {
         Ok(Command::new("git")

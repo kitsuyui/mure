@@ -32,13 +32,7 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
     // git pull --ff-only origin "$default_branch":"$default_branch"
 
     // TODO: origin is hardcoded. If you have multiple remotes, you need to specify which one to use.
-    Command::new("git")
-        .arg("pull")
-        .arg("--ff-only")
-        .arg("origin")
-        .arg(&default_branch)
-        .arg(&default_branch)
-        .output()?;
+    repo.pull_fast_forwarded("origin", &default_branch)?;
 
     // switch to default branch if current branch is clean
     if repo.is_clean()? {
