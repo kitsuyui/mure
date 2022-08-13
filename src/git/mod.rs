@@ -79,13 +79,13 @@ mod tests {
         repo: Repository,
         _temp_dir: Temp,
     }
-    trait RepositoryTestFixture {
+    trait Fixture {
         fn create() -> Result<TestRepository, Error>;
         fn set_dummy_profile(&self) -> Result<(), Error>;
         fn create_empty_commit(&self, message: &str) -> Result<(), Error>;
     }
 
-    impl RepositoryTestFixture for TestRepository {
+    impl Fixture for TestRepository {
         /// Create temporary repository.
         /// When the test is finished, the temporary directory is removed.
         fn create() -> Result<TestRepository, Error> {
