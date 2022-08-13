@@ -1,5 +1,9 @@
+use std::process::Command;
+
 /// Wrapper of git2 and git commands.
-use git2::{BranchType, Error, Repository};
+use git2::{BranchType, Repository};
+
+use crate::mure_error::Error;
 
 pub trait RepositoryWrapper {
     fn merged_branches(&self) -> Result<Vec<String>, Error>;
@@ -12,18 +16,18 @@ pub trait RepositoryWrapper {
 impl RepositoryWrapper for Repository {
     fn merged_branches(&self) -> Result<Vec<String>, Error> {
         let mut branches = Vec::new();
-        // git for-each-ref --format='%(refname)' 'refs/heads/**/*' --merged
-        for branch in self.branches(Some(BranchType::Local))? {
-            let (branch, branch_type) = branch?;
-            if branch_type == BranchType::Local {
-                let name = branch.name()?;
-                match name {
-                    Some(name_) => {
-                        let name__ = name_.to_string();
-                        branches.push(name__);
-                    }
-                    None => {}
-                }
+        // git for-each-ref --format='%(refname:short)' 'refs/heads/**/*' --merged
+        let result = Command::new("git")
+            .arg("for-each-ref")
+            .arg("--format=%(refname:short)")
+            .arg("refs/heads/**/*")
+            .arg("--merged")
+            .current_dir(self.path().to_str().unwrap())
+            .output()?;
+        let stdout = String::from_utf8(result.stdout).unwrap();
+        for line in stdout.split('\n') {
+            if !line.is_empty() {
+                branches.push(line.to_string());
             }
         }
         Ok(branches)
@@ -64,6 +68,86 @@ mod tests {
     use super::*;
     use mktemp::Temp;
     use std::{io::Write, process::Command};
+
+    #[test]
+    fn merged_branches() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+        let path = temp_dir
+            .as_path()
+            .as_os_str()
+            .to_str()
+            .expect("failed to get path");
+        let repo = Repository::init(path).unwrap();
+        // git remote add origin
+        let example_repo_url = "https://github.com/kitsuyui/kitsuyui.git";
+        repo.remote_set_url("origin", example_repo_url)
+            .expect("failed to set remote url");
+        repo.config()
+            .unwrap()
+            .set_str("user.name", "tester")
+            .unwrap();
+        repo.config()
+            .unwrap()
+            .set_str("user.email", "test@example.com")
+            .unwrap();
+
+        // create a first branch
+        let main_branch = "main";
+        Command::new("git")
+            .current_dir(path)
+            .arg("switch")
+            .arg("-c")
+            .arg(main_branch)
+            .output()
+            .expect("failed to switch branch");
+
+        // create a new branch for testing
+        let branch_name = "test_branch";
+        // git switch -c $branch_name
+        Command::new("git")
+            .current_dir(path)
+            .arg("switch")
+            .arg("-c")
+            .arg(branch_name)
+            .output()
+            .expect("failed to switch branch");
+
+        // git commit --allow-empty -m "initial commit"
+        let sig = repo.signature().unwrap();
+        let tree_id = {
+            let mut index = repo.index().unwrap();
+            index.write_tree().unwrap()
+        };
+        let tree = repo.find_tree(tree_id).unwrap();
+        repo.commit(Some("HEAD"), &sig, &sig, "initial commit", &tree, &[])
+            .unwrap();
+
+        // switch to default branch
+        Command::new("git")
+            .current_dir(path)
+            .arg("switch")
+            .arg(main_branch)
+            .output()
+            .expect("failed to switch branch");
+
+        // git merge $branch_name
+        Command::new("git")
+            .current_dir(path)
+            .arg("merge")
+            .arg(branch_name)
+            .output()
+            .expect("failed to merge branch");
+
+        // now test_branch is same as default branch so it should be merged
+        match repo.merged_branches() {
+            Ok(branches) => {
+                assert!(branches.contains(&branch_name.to_string()));
+            }
+            Err(e) => {
+                panic!("failed to get merged branches: {}", e);
+            }
+        }
+    }
 
     #[test]
     fn test_is_empty() {
