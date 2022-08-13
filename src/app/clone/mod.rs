@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::github::{ParseURL, RepoInfo};
+use crate::github::repo::RepoInfo;
 use crate::{config::ConfigSupport, mure_error::Error};
 use std::os::unix::fs;
 use std::process::Command;

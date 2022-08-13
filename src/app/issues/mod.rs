@@ -1,5 +1,5 @@
 use crate::github;
-use crate::github::search_repository_query::{
+use crate::github::api::search_repository_query::{
     ResponseData, SearchRepositoryQueryReposEdgesNode, Variables,
 };
 use crate::mure_error::Error;
@@ -40,7 +40,7 @@ pub fn show_issues(user: &str) -> Result<(), Error> {
     let query = format!("user:{} is:public fork:false archived:false", user);
     let var = Variables { query };
     let token = std::env::var("GH_TOKEN").expect("GH_TOKEN is not set");
-    match github::search_repository(token, var) {
+    match github::api::search_repository(token, var) {
         Err(e) => println!("{}", e),
         Ok(result) => {
             match repository_summary(result) {
