@@ -41,11 +41,15 @@ impl RepositorySupport for Repository {
     fn has_unsaved(&self) -> Result<bool, Error> {
         for entry in self.statuses(None)?.iter() {
             match entry.status() {
-                git2::Status::CURRENT => continue,
-                git2::Status::WT_NEW | git2::Status::WT_MODIFIED | git2::Status::WT_DELETED => {
+                git2::Status::WT_NEW
+                | git2::Status::WT_MODIFIED
+                | git2::Status::WT_DELETED
+                | git2::Status::INDEX_NEW
+                | git2::Status::INDEX_MODIFIED
+                | git2::Status::INDEX_DELETED => {
                     return Ok(true);
                 }
-                _ => {}
+                _ => continue,
             }
         }
         Ok(false)
@@ -141,6 +145,14 @@ mod tests {
             repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[])?;
             Ok(())
         }
+
+        fn create_file(&self, filename: &str, content: &str) -> Result<(), Error> {
+            let filepath = self.repo.workdir().unwrap().join(filename);
+            let mut file = std::fs::File::create(filepath)?;
+            file.write_all(content.as_bytes())?;
+            file.sync_all()?;
+            Ok(())
+        }
     }
 
     #[test]
@@ -228,56 +240,59 @@ mod tests {
         let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
-        assert!(repo.is_clean().unwrap(), "repo is clean when initialized");
         assert!(
-            !repo.has_unsaved().unwrap(),
+            repo.is_clean().unwrap() && !repo.has_unsaved().unwrap(),
             "repo is clean when initialized"
         );
 
-        // write file
-        let filepath = repo.workdir().unwrap().join("something.txt");
-        let mut file = std::fs::File::create(filepath).unwrap();
-        file.write_all("hello".as_bytes()).unwrap();
-        file.sync_all().unwrap();
+        fixture.create_file("1.txt", "hello").unwrap();
 
-        assert!(!repo.is_clean().unwrap(), "repo is dirty because of file");
-        assert!(repo.has_unsaved().unwrap(), "repo is dirty because of file");
+        assert!(
+            !repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),
+            "repo is dirty because of file"
+        );
 
-        // git commit -m "initial commit"
-        let sig = repo.signature().unwrap();
-        let tree_id = {
-            let mut index = repo.index().unwrap();
-            index
-                .add_all(&["something.txt"], git2::IndexAddOption::DEFAULT, None)
-                .unwrap();
-            index.write_tree().unwrap()
-        };
-        let tree = repo.find_tree(tree_id).unwrap();
-        repo.commit(Some("HEAD"), &sig, &sig, "initial commit", &tree, &[])
-            .unwrap();
+        repo.command(&["add", "1.txt"])
+            .expect("failed to add 1.txt");
 
-        assert!(repo.is_clean().unwrap(), "repo is clean after commit");
-        assert!(!repo.has_unsaved().unwrap(), "repo is clean after commit");
+        assert!(
+            !repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),
+            "staged but not committed file is dirty"
+        );
 
-        // git checkout -b feature
+        repo.command(&["commit", "-m", "add 1.txt"])
+            .expect("failed to commit");
+
+        assert!(
+            repo.is_clean().unwrap() && !repo.has_unsaved().unwrap(),
+            "repo is clean after commit"
+        );
+
         repo.command(&["switch", "-c", "feature"])
             .expect("failed to switch to feature branch");
 
-        // write file
-        let filepath = repo.workdir().unwrap().join("something2.txt");
-        let mut file = std::fs::File::create(filepath).unwrap();
-        file.write_all("hello".as_bytes()).unwrap();
-        file.sync_all().unwrap();
+        fixture.create_file("2.txt", "hello").unwrap();
 
-        assert!(!repo.is_clean().unwrap(), "unstaged file is dirty");
-        assert!(repo.has_unsaved().unwrap(), "unstaged file is dirty");
+        assert!(
+            !repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),
+            "unstaged file is dirty"
+        );
 
-        // git add something2.txt
-        repo.command(&["add", "something2.txt"])
-            .expect("failed to add something2.txt");
+        repo.command(&["add", "2.txt"])
+            .expect("failed to add 2.txt");
 
-        assert!(repo.is_clean().unwrap(), "repo is clean after commit");
-        assert!(!repo.has_unsaved().unwrap(), "repo is clean after commit");
+        assert!(
+            !repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),
+            "staged but not committed file is dirty"
+        );
+
+        repo.command(&["commit", "-m", "add 2.txt"])
+            .expect("failed to commit");
+
+        assert!(
+            repo.is_clean().unwrap() && !repo.has_unsaved().unwrap(),
+            "repo is clean after commit"
+        );
     }
 
     #[test]
