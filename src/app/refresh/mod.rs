@@ -37,12 +37,7 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
     // switch to default branch if current branch is clean
     if repo.is_clean()? {
         // git switch $default_branch
-        let result = Command::new("git")
-            .current_dir(repo_path)
-            .arg("switch")
-            .arg(&default_branch)
-            .output()?;
-
+        let result = repo.switch(&default_branch)?;
         return Ok(RefreshStatus::Update {
             switch_to_default: true,
             message: String::from_utf8(result.stdout).unwrap(),

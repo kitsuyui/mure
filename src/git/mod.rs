@@ -12,6 +12,7 @@ pub trait RepositorySupport {
     fn is_remote_exists(&self) -> Result<bool, Error>;
     fn get_current_branch(&self) -> Result<String, Error>;
     fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<(), Error>;
+    fn switch(&self, branch: &str) -> Result<Output, Error>;
     fn command(&self, args: &[&str]) -> Result<Output, Error>;
 }
 
@@ -65,6 +66,10 @@ impl RepositorySupport for Repository {
     fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<(), Error> {
         self.command(&["pull", "--ff-only", remote, branch, branch])?;
         Ok(())
+    }
+    fn switch(&self, branch: &str) -> Result<Output, Error> {
+        let output = self.command(&["switch", branch])?;
+        Ok(output)
     }
     fn command(&self, args: &[&str]) -> Result<Output, Error> {
         Ok(Command::new("git")
@@ -170,7 +175,7 @@ mod tests {
         fixture.create_empty_commit("initial commit").unwrap();
 
         // switch to default branch
-        repo.command(&["switch", main_branch])
+        repo.switch(main_branch)
             .expect("failed to switch to main branch");
 
         // git merge $branch_name
