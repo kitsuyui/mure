@@ -35,6 +35,9 @@ impl RepositorySupport for Repository {
         }
         Ok(branches)
     }
+    fn is_clean(&self) -> Result<bool, Error> {
+        Ok(!self.has_unsaved()?)
+    }
     fn has_unsaved(&self) -> Result<bool, Error> {
         for entry in self.statuses(None)?.iter() {
             match entry.status() {
@@ -46,9 +49,6 @@ impl RepositorySupport for Repository {
             }
         }
         Ok(false)
-    }
-    fn is_clean(&self) -> Result<bool, Error> {
-        Ok(!self.has_unsaved()?)
     }
     fn is_remote_exists(&self) -> Result<bool, Error> {
         Ok(!self.remotes()?.is_empty())
