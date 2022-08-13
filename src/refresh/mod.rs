@@ -54,6 +54,23 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
             message: String::from_utf8(result.stdout).unwrap(),
         });
     }
+
+    let merged_branches = repo.merged_branches()?;
+    let delete_branches = merged_branches
+        .iter()
+        .filter(|&branch| !branch.eq(&default_branch))
+        .collect::<Vec<_>>();
+
+    for branch in delete_branches {
+        // git branch -d $branch
+        Command::new("git")
+            .current_dir(repo_path)
+            .arg("branch")
+            .arg("-d")
+            .arg(&branch)
+            .output()?;
+    }
+
     Ok(RefreshStatus::Update {
         switch_to_default: false,
         message: String::from(""),
