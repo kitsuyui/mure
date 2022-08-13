@@ -3,7 +3,6 @@ use git2::Repository;
 use crate::gh::get_default_branch;
 use crate::git::RepositorySupport;
 use crate::mure_error::Error;
-use std::process::Command;
 
 pub enum RefreshStatus {
     DoNothing(Reason),
@@ -51,13 +50,7 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
         .collect::<Vec<_>>();
 
     for branch in delete_branches {
-        // git branch -d $branch
-        Command::new("git")
-            .current_dir(repo_path)
-            .arg("branch")
-            .arg("-d")
-            .arg(&branch)
-            .output()?;
+        repo.delete_branch(branch)?;
     }
 
     Ok(RefreshStatus::Update {

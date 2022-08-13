@@ -13,6 +13,7 @@ pub trait RepositorySupport {
     fn get_current_branch(&self) -> Result<String, Error>;
     fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<(), Error>;
     fn switch(&self, branch: &str) -> Result<Output, Error>;
+    fn delete_branch(&self, branch: &str) -> Result<Output, Error>;
     fn command(&self, args: &[&str]) -> Result<Output, Error>;
 }
 
@@ -69,6 +70,10 @@ impl RepositorySupport for Repository {
     }
     fn switch(&self, branch: &str) -> Result<Output, Error> {
         let output = self.command(&["switch", branch])?;
+        Ok(output)
+    }
+    fn delete_branch(&self, branch: &str) -> Result<Output, Error> {
+        let output = self.command(&["branch", "-d", branch])?;
         Ok(output)
     }
     fn command(&self, args: &[&str]) -> Result<Output, Error> {
