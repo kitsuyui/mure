@@ -11,7 +11,7 @@ pub trait RepositorySupport {
     fn has_unsaved(&self) -> Result<bool, Error>;
     fn is_remote_exists(&self) -> Result<bool, Error>;
     fn get_current_branch(&self) -> Result<String, Error>;
-    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<(), Error>;
+    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<Output, Error>;
     fn switch(&self, branch: &str) -> Result<Output, Error>;
     fn delete_branch(&self, branch: &str) -> Result<Output, Error>;
     fn command(&self, args: &[&str]) -> Result<Output, Error>;
@@ -68,16 +68,36 @@ impl RepositorySupport for Repository {
             None => unreachable!("unreachable!"),
         }
     }
-    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<(), Error> {
-        self.command(&["pull", "--ff-only", remote, branch, branch])?;
-        Ok(())
+    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<Output, Error> {
+        let output = self.command(&["pull", "--ff-only", remote, branch, branch])?;
+        if !output.status.success() {
+            return Err(Error::from_str(&format!(
+                "failed to pull fast forward: {}",
+                String::from_utf8(output.stderr).unwrap()
+            )));
+        }
+        Ok(output)
     }
     fn switch(&self, branch: &str) -> Result<Output, Error> {
         let output = self.command(&["switch", branch])?;
+        if !output.status.success() {
+            return Err(Error::from_str(&format!(
+                "failed to switch to branch {}: {}",
+                branch,
+                String::from_utf8(output.stderr).unwrap()
+            )));
+        }
         Ok(output)
     }
     fn delete_branch(&self, branch: &str) -> Result<Output, Error> {
         let output = self.command(&["branch", "-d", branch])?;
+        if !output.status.success() {
+            return Err(Error::from_str(&format!(
+                "failed to delete branch {}: {}",
+                branch,
+                String::from_utf8(output.stderr).unwrap()
+            )));
+        }
         Ok(output)
     }
     fn command(&self, args: &[&str]) -> Result<Output, Error> {
@@ -158,9 +178,10 @@ mod tests {
         repo.remote_set_url("origin", example_repo_url)
             .expect("failed to set remote url");
 
+        fixture.create_empty_commit("initial commit").unwrap();
+
         // create a first branch
-        let main_branch = "main";
-        repo.command(&["switch", "-c", main_branch])
+        repo.command(&["switch", "-c", "main"])
             .expect("failed to switch to main branch");
 
         // create a new branch for testing
@@ -169,10 +190,8 @@ mod tests {
         repo.command(&["switch", "-c", branch_name])
             .expect("failed to switch to test branch");
 
-        fixture.create_empty_commit("initial commit").unwrap();
-
         // switch to default branch
-        repo.switch(main_branch)
+        repo.switch("main")
             .expect("failed to switch to main branch");
 
         // git merge $branch_name
@@ -182,8 +201,6 @@ mod tests {
         // now test_branch is same as default branch so it should be merged
         match repo.merged_branches() {
             Ok(branches) => {
-                println!("{:?}", branches);
-                println!("{:?}", vec![main_branch, branch_name]);
                 assert!(branches.contains(&branch_name.to_string()));
             }
             Err(e) => {
