@@ -96,20 +96,15 @@ mod tests {
     use mktemp::Temp;
     use std::io::Write;
 
-    struct TestRepository {
+    struct Fixture {
         repo: Repository,
         _temp_dir: Temp,
     }
-    trait Fixture {
-        fn create() -> Result<TestRepository, Error>;
-        fn set_dummy_profile(&self) -> Result<(), Error>;
-        fn create_empty_commit(&self, message: &str) -> Result<(), Error>;
-    }
 
-    impl Fixture for TestRepository {
+    impl Fixture {
         /// Create temporary repository.
         /// When the test is finished, the temporary directory is removed.
-        fn create() -> Result<TestRepository, Error> {
+        fn create() -> Result<Fixture, Error> {
             let temp_dir = Temp::new_dir().expect("failed to create temp dir");
             let path = temp_dir
                 .as_path()
@@ -117,7 +112,7 @@ mod tests {
                 .to_str()
                 .expect("failed to get path");
             let repo = Repository::init(path)?;
-            let me = TestRepository {
+            let me = Fixture {
                 repo,
                 _temp_dir: temp_dir,
             };
@@ -150,7 +145,7 @@ mod tests {
 
     #[test]
     fn test_merged_branches() {
-        let fixture = TestRepository::create().unwrap();
+        let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
         // git remote add origin
@@ -195,7 +190,7 @@ mod tests {
 
     #[test]
     fn test_is_empty() {
-        let fixture = TestRepository::create().unwrap();
+        let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
         assert!(repo.is_empty().unwrap(), "repo is empty when initialized");
@@ -208,7 +203,7 @@ mod tests {
 
     #[test]
     fn test_is_remote_exists() {
-        let fixture = TestRepository::create().unwrap();
+        let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
         assert!(
@@ -230,7 +225,7 @@ mod tests {
 
     #[test]
     fn test_has_unsaved_and_is_clean() {
-        let fixture = TestRepository::create().unwrap();
+        let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
         assert!(repo.is_clean().unwrap(), "repo is clean when initialized");
@@ -287,7 +282,7 @@ mod tests {
 
     #[test]
     fn test_get_current_branch() {
-        let fixture = TestRepository::create().unwrap();
+        let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
         if let Ok(it) = repo.get_current_branch() {
