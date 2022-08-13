@@ -134,15 +134,8 @@ mod tests {
         }
         /// Create empty commit.
         fn create_empty_commit(&self, message: &str) -> Result<(), Error> {
-            let repo = &self.repo;
-            // git commit --allow-empty -m "initial commit"
-            let sig = repo.signature()?;
-            let tree_id = {
-                let mut index = repo.index()?;
-                index.write_tree()?
-            };
-            let tree = repo.find_tree(tree_id)?;
-            repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[])?;
+            self.repo
+                .command(&["commit", "--allow-empty", "-m", message])?;
             Ok(())
         }
 
@@ -176,7 +169,6 @@ mod tests {
         repo.command(&["switch", "-c", branch_name])
             .expect("failed to switch to test branch");
 
-        // git commit --allow-empty -m "initial commit"
         fixture.create_empty_commit("initial commit").unwrap();
 
         // switch to default branch
@@ -207,7 +199,6 @@ mod tests {
 
         assert!(repo.is_empty().unwrap(), "repo is empty when initialized");
 
-        // git commit --allow-empty -m "initial commit"
         fixture.create_empty_commit("initial commit").unwrap();
 
         assert!(!repo.is_empty().unwrap(), "repo is not empty after commit");
@@ -304,7 +295,6 @@ mod tests {
             panic!("current branch will be empty: {}", it);
         }
 
-        // git commit --allow-empty -m "initial commit"
         fixture.create_empty_commit("initial commit").unwrap();
 
         match repo.get_current_branch() {
