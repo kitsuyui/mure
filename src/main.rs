@@ -1,20 +1,17 @@
 use clap::App;
-mod clone;
+mod app;
 mod config;
 mod gh;
 mod git;
 mod github;
-mod init;
-mod issues;
 mod mure_error;
-mod refresh;
 
 fn main() {
-    let config = init::get_config_or_initialize().expect("config error");
+    let config = app::initialize::get_config_or_initialize().expect("config error");
     let cmd = parser();
     let matches = cmd.get_matches();
     match matches.subcommand() {
-        Some(("init", _)) => match init::init() {
+        Some(("init", _)) => match app::initialize::init() {
             Ok(_) => {
                 println!("Initialized config file");
             }
@@ -28,18 +25,18 @@ fn main() {
                 Some(repo) => repo.to_string(),
                 None => current_dir.to_str().unwrap().to_string(),
             };
-            match refresh::refresh(&repo_path) {
+            match app::refresh::refresh(&repo_path) {
                 Ok(_) => (),
                 Err(e) => println!("{}", e),
             }
         }
-        Some(("issues", _)) => match issues::show_issues() {
+        Some(("issues", _)) => match app::issues::show_issues() {
             Ok(_) => (),
             Err(e) => println!("{}", e),
         },
         Some(("clone", matches)) => {
             let repo_url = matches.get_one::<String>("url").unwrap();
-            match clone::clone(&config, repo_url) {
+            match app::clone::clone(&config, repo_url) {
                 Ok(_) => (),
                 Err(e) => println!("{}", e),
             }
