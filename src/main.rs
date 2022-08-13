@@ -4,15 +4,24 @@ mod config;
 mod gh;
 mod git;
 mod github;
+mod init;
 mod issues;
 mod mure_error;
 mod refresh;
 
 fn main() {
-    let config = config::get_config().expect("config error");
+    let config = init::get_config_or_initialize().expect("config error");
     let cmd = parser();
     let matches = cmd.get_matches();
     match matches.subcommand() {
+        Some(("init", _)) => match init::init() {
+            Ok(_) => {
+                println!("Initialized config file");
+            }
+            Err(e) => {
+                println!("{}", e);
+            }
+        },
         Some(("refresh", matches)) => {
             let current_dir = std::env::current_dir().unwrap();
             let repo_path = match matches.get_one::<String>("repository") {
@@ -42,6 +51,7 @@ fn main() {
 /// Parser
 fn parser() -> App<'static> {
     // TODO: subcommand "init" to create ~/.mure.toml
+    let subcommand_init = App::new("init").about("create ~/.mure.toml");
     let subcommand_refresh = App::new("refresh").about("refresh repository").arg(
         clap::Arg::with_name("repository")
             .help("repository to refresh. if not specified, current directory is used")
@@ -58,6 +68,7 @@ fn parser() -> App<'static> {
     let cmd = clap::Command::new("mure")
         .bin_name("mure")
         .subcommand_required(true)
+        .subcommand(subcommand_init)
         .subcommand(subcommand_refresh)
         .subcommand(subcommand_issues)
         .subcommand(subcommand_clone);
@@ -66,6 +77,15 @@ fn parser() -> App<'static> {
 
 #[test]
 fn test_parser() {
+    let cmd = parser();
+    match cmd.get_matches_from_safe(vec!["mure", "init"]) {
+        Ok(matches) => {
+            assert_eq!(matches.subcommand_name(), Some("init"));
+        }
+        Err(e) => {
+            unreachable!("{}", e);
+        }
+    }
     let cmd = parser();
     match cmd.get_matches_from_safe(["mure", "refresh"]) {
         Ok(matches) => {

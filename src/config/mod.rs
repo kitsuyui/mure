@@ -2,38 +2,41 @@
 //!
 //! Usually config file is located at ~/.mure.toml
 
+use crate::mure_error::Error;
+
 use std::{
-    io::Error,
+    fs::File,
+    io::Write,
     path::{Path, PathBuf},
 };
 
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Config {
     pub core: Core,
     pub github: GitHub,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Core {
     pub base_dir: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct GitHub {
     // TODO: try .gitconfig.user.name if not set
     pub username: String,
 }
 
-pub trait ConfigService {
+pub trait ConfigSupport {
     fn base_path(&self) -> PathBuf;
     fn repos_store_path(&self) -> PathBuf;
     fn repo_store_path(&self, domain: &str, owner: &str, repo: &str) -> PathBuf;
     fn repo_work_path(&self, domain: &str, owner: &str, repo: &str) -> PathBuf;
 }
 
-impl ConfigService for Config {
+impl ConfigSupport for Config {
     fn base_path(&self) -> PathBuf {
         let expand_path = shellexpand::tilde(self.core.base_dir.as_str()).to_string();
         Path::new(expand_path.as_str()).to_path_buf()
@@ -57,25 +60,53 @@ pub fn get_config() -> Result<Config, Error> {
     Ok(config)
 }
 
+pub fn initialize_config() -> Result<Config, Error> {
+    let path = resolve_config_path()?;
+    if path.exists() {
+        return Err(Error::from_str("config file already exists"));
+    }
+    let config = create_config(&path)?;
+    Ok(config)
+}
+
+fn create_config(path: &Path) -> Result<Config, Error> {
+    let config = Config {
+        core: Core {
+            base_dir: "~/.dev".to_string(),
+        },
+        github: GitHub {
+            username: "".to_string(),
+        },
+    };
+    let content = toml::to_string(&config)?;
+    let mut file = File::create(path)?;
+    file.write_all(content.as_bytes())?;
+    Ok(config)
+}
+
 /// resolve config path
 ///
 /// Resolve mure configuration path. Usually this is $HOME/.mure.toml
-fn resolve_config_path() -> Result<String, Error> {
+fn resolve_config_path() -> Result<PathBuf, Error> {
     // TODO: Is $HOME/.murerc better?
     // Or should try ~/.config/mure.toml?
-    Ok(shellexpand::tilde("~/.mure.toml").to_string())
+    Ok(PathBuf::from(
+        shellexpand::tilde("~/.mure.toml").to_string(),
+    ))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mktemp::Temp;
+
     #[test]
     fn test_resolve_config_path() {
         let home = std::env::var("HOME").unwrap();
-        assert_eq!(
-            resolve_config_path().unwrap(),
-            format!("{}/.mure.toml", home)
-        );
+        match resolve_config_path() {
+            Ok(path) => assert_eq!(path.to_str().unwrap(), &format!("{}/.mure.toml", home)),
+            Err(err) => unreachable!("{:?}", err),
+        }
     }
 
     #[test]
@@ -92,5 +123,19 @@ mod tests {
         .unwrap();
         assert!(config.core.base_dir == "~/.dev");
         assert_eq!(config.github.username, "kitsuyui");
+    }
+
+    #[test]
+    fn test_create_config() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+        let config_path = temp_dir.as_path().join(".mure.toml");
+
+        create_config(&config_path).unwrap();
+
+        // test parse config
+        let config: Config =
+            toml::from_str(&std::fs::read_to_string(config_path).unwrap()).unwrap();
+        assert!(config.core.base_dir == "~/.dev");
+        assert_eq!(config.github.username, "");
     }
 }
