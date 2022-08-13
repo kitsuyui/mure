@@ -32,3 +32,9 @@ pub fn search_repository(
         None => Err(Error::from_str("No data found")),
     }
 }
+
+impl From<reqwest::Error> for Error {
+    fn from(e: reqwest::Error) -> Error {
+        Error::from_str(&e.to_string())
+    }
+}

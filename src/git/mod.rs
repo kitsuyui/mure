@@ -69,6 +69,12 @@ impl RepositorySupport for Repository {
     }
 }
 
+impl From<git2::Error> for Error {
+    fn from(e: git2::Error) -> Error {
+        Error::from_str(&e.to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

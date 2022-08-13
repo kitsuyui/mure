@@ -1,5 +1,6 @@
 use std::error;
 use std::fmt;
+use std::io;
 
 #[derive(Debug, Clone)]
 pub struct Error {
@@ -26,32 +27,8 @@ impl error::Error for Error {
     }
 }
 
-impl From<git2::Error> for Error {
-    fn from(e: git2::Error) -> Error {
-        Error::from_str(&e.to_string())
-    }
-}
-
-impl From<std::io::Error> for Error {
-    fn from(e: std::io::Error) -> Error {
-        Error::from_str(&e.to_string())
-    }
-}
-
-impl From<reqwest::Error> for Error {
-    fn from(e: reqwest::Error) -> Error {
-        Error::from_str(&e.to_string())
-    }
-}
-
-impl From<toml::de::Error> for Error {
-    fn from(e: toml::de::Error) -> Error {
-        Error::from_str(&e.to_string())
-    }
-}
-
-impl From<toml::ser::Error> for Error {
-    fn from(e: toml::ser::Error) -> Error {
+impl From<io::Error> for Error {
+    fn from(e: io::Error) -> Error {
         Error::from_str(&e.to_string())
     }
 }
