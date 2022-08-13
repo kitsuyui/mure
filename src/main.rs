@@ -30,7 +30,7 @@ fn main() {
                 Err(e) => println!("{}", e),
             }
         }
-        Some(("issues", _)) => match app::issues::show_issues() {
+        Some(("issues", _)) => match app::issues::show_issues(&config.github.username) {
             Ok(_) => (),
             Err(e) => println!("{}", e),
         },

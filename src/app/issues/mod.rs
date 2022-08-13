@@ -35,11 +35,10 @@ pub fn repository_summary(result: ResponseData) -> Result<Vec<RepositorySummary>
     Ok(results)
 }
 
-pub fn show_issues() -> Result<(), Error> {
-    let query = "user:kitsuyui is:public fork:false archived:false";
-    let var = Variables {
-        query: query.to_string(),
-    };
+pub fn show_issues(user: &str) -> Result<(), Error> {
+    // TODO: more flexible search query
+    let query = format!("user:{} is:public fork:false archived:false", user);
+    let var = Variables { query };
     let token = std::env::var("GH_TOKEN").expect("GH_TOKEN is not set");
     match github::search_repository(token, var) {
         Err(e) => println!("{}", e),
