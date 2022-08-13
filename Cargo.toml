@@ -5,6 +5,10 @@ edition = "2021"
 authors = ["Yui Kitsu <kitsuyui+github@kitsuyui.com>"]
 description = "A command line tool for creating and managing multiple repositories."
 license = "BSD-3-Clause"
+readme = "README.md"
+repository = "https://github.com/kitsuyui/mure"
+documentation = "https://docs.rs/mure"
+categories = ["command-line-utilities"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
