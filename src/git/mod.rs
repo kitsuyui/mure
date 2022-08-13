@@ -135,7 +135,7 @@ mod tests {
     }
 
     #[test]
-    fn merged_branches() {
+    fn test_merged_branches() {
         let fixture = TestRepository::create().unwrap();
         let repo = &fixture.repo;
 
