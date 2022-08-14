@@ -95,6 +95,18 @@ fn resolve_config_path() -> Result<PathBuf, Error> {
     ))
 }
 
+impl From<toml::de::Error> for Error {
+    fn from(e: toml::de::Error) -> Error {
+        Error::from_str(&e.to_string())
+    }
+}
+
+impl From<toml::ser::Error> for Error {
+    fn from(e: toml::ser::Error) -> Error {
+        Error::from_str(&e.to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -3,7 +3,6 @@ use git2::Repository;
 use crate::gh::get_default_branch;
 use crate::git::RepositorySupport;
 use crate::mure_error::Error;
-use std::process::Command;
 
 pub enum RefreshStatus {
     DoNothing(Reason),
@@ -32,23 +31,12 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
     // git pull --ff-only origin "$default_branch":"$default_branch"
 
     // TODO: origin is hardcoded. If you have multiple remotes, you need to specify which one to use.
-    Command::new("git")
-        .arg("pull")
-        .arg("--ff-only")
-        .arg("origin")
-        .arg(&default_branch)
-        .arg(&default_branch)
-        .output()?;
+    repo.pull_fast_forwarded("origin", &default_branch)?;
 
     // switch to default branch if current branch is clean
     if repo.is_clean()? {
         // git switch $default_branch
-        let result = Command::new("git")
-            .current_dir(repo_path)
-            .arg("switch")
-            .arg(&default_branch)
-            .output()?;
-
+        let result = repo.switch(&default_branch)?;
         return Ok(RefreshStatus::Update {
             switch_to_default: true,
             message: String::from_utf8(result.stdout).unwrap(),
@@ -62,13 +50,7 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
         .collect::<Vec<_>>();
 
     for branch in delete_branches {
-        // git branch -d $branch
-        Command::new("git")
-            .current_dir(repo_path)
-            .arg("branch")
-            .arg("-d")
-            .arg(&branch)
-            .output()?;
+        repo.delete_branch(branch)?;
     }
 
     Ok(RefreshStatus::Update {

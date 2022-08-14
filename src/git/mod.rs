@@ -11,6 +11,9 @@ pub trait RepositorySupport {
     fn has_unsaved(&self) -> Result<bool, Error>;
     fn is_remote_exists(&self) -> Result<bool, Error>;
     fn get_current_branch(&self) -> Result<String, Error>;
+    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<Output, Error>;
+    fn switch(&self, branch: &str) -> Result<Output, Error>;
+    fn delete_branch(&self, branch: &str) -> Result<Output, Error>;
     fn command(&self, args: &[&str]) -> Result<Output, Error>;
 }
 
@@ -32,20 +35,24 @@ impl RepositorySupport for Repository {
         }
         Ok(branches)
     }
+    fn is_clean(&self) -> Result<bool, Error> {
+        Ok(!self.has_unsaved()?)
+    }
     fn has_unsaved(&self) -> Result<bool, Error> {
         for entry in self.statuses(None)?.iter() {
             match entry.status() {
-                git2::Status::CURRENT => continue,
-                git2::Status::WT_NEW | git2::Status::WT_MODIFIED | git2::Status::WT_DELETED => {
+                git2::Status::WT_NEW
+                | git2::Status::WT_MODIFIED
+                | git2::Status::WT_DELETED
+                | git2::Status::INDEX_NEW
+                | git2::Status::INDEX_MODIFIED
+                | git2::Status::INDEX_DELETED => {
                     return Ok(true);
                 }
-                _ => {}
+                _ => continue,
             }
         }
         Ok(false)
-    }
-    fn is_clean(&self) -> Result<bool, Error> {
-        Ok(!self.has_unsaved()?)
     }
     fn is_remote_exists(&self) -> Result<bool, Error> {
         Ok(!self.remotes()?.is_empty())
@@ -61,11 +68,49 @@ impl RepositorySupport for Repository {
             None => unreachable!("unreachable!"),
         }
     }
+    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<Output, Error> {
+        let output = self.command(&["pull", "--ff-only", remote, branch, branch])?;
+        if !output.status.success() {
+            return Err(Error::from_str(&format!(
+                "failed to pull fast forward: {}",
+                String::from_utf8(output.stderr).unwrap()
+            )));
+        }
+        Ok(output)
+    }
+    fn switch(&self, branch: &str) -> Result<Output, Error> {
+        let output = self.command(&["switch", branch])?;
+        if !output.status.success() {
+            return Err(Error::from_str(&format!(
+                "failed to switch to branch {}: {}",
+                branch,
+                String::from_utf8(output.stderr).unwrap()
+            )));
+        }
+        Ok(output)
+    }
+    fn delete_branch(&self, branch: &str) -> Result<Output, Error> {
+        let output = self.command(&["branch", "-d", branch])?;
+        if !output.status.success() {
+            return Err(Error::from_str(&format!(
+                "failed to delete branch {}: {}",
+                branch,
+                String::from_utf8(output.stderr).unwrap()
+            )));
+        }
+        Ok(output)
+    }
     fn command(&self, args: &[&str]) -> Result<Output, Error> {
         Ok(Command::new("git")
             .current_dir(self.workdir().expect("parent dir exists"))
             .args(args)
             .output()?)
+    }
+}
+
+impl From<git2::Error> for Error {
+    fn from(e: git2::Error) -> Error {
+        Error::from_str(&e.to_string())
     }
 }
 
@@ -75,28 +120,23 @@ mod tests {
     use mktemp::Temp;
     use std::io::Write;
 
-    struct TestRepository {
+    struct Fixture {
         repo: Repository,
         _temp_dir: Temp,
     }
-    trait Fixture {
-        fn create() -> Result<TestRepository, Error>;
-        fn set_dummy_profile(&self) -> Result<(), Error>;
-        fn create_empty_commit(&self, message: &str) -> Result<(), Error>;
-    }
 
-    impl Fixture for TestRepository {
+    impl Fixture {
         /// Create temporary repository.
         /// When the test is finished, the temporary directory is removed.
-        fn create() -> Result<TestRepository, Error> {
+        fn create() -> Result<Fixture, Error> {
             let temp_dir = Temp::new_dir().expect("failed to create temp dir");
             let path = temp_dir
                 .as_path()
                 .as_os_str()
                 .to_str()
                 .expect("failed to get path");
-            let repo = Repository::init(path).unwrap();
-            let me = TestRepository {
+            let repo = Repository::init(path)?;
+            let me = Fixture {
                 repo,
                 _temp_dir: temp_dir,
             };
@@ -105,38 +145,32 @@ mod tests {
         }
         /// Set dummy profile.
         fn set_dummy_profile(&self) -> Result<(), Error> {
-            let repo = &self.repo;
             // git config user.name "test"
-            repo.config()
-                .unwrap()
-                .set_str("user.name", "tester")
-                .unwrap();
             // git config user.email "test@example.com"
-            repo.config()
-                .unwrap()
-                .set_str("user.email", "test@example.com")
-                .unwrap();
+            let repo = &self.repo;
+            repo.config()?.set_str("user.name", "tester")?;
+            repo.config()?.set_str("user.email", "test@example.com")?;
             Ok(())
         }
         /// Create empty commit.
         fn create_empty_commit(&self, message: &str) -> Result<(), Error> {
-            let repo = &self.repo;
-            // git commit --allow-empty -m "initial commit"
-            let sig = repo.signature().unwrap();
-            let tree_id = {
-                let mut index = repo.index().unwrap();
-                index.write_tree().unwrap()
-            };
-            let tree = repo.find_tree(tree_id).unwrap();
-            repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[])
-                .unwrap();
+            self.repo
+                .command(&["commit", "--allow-empty", "-m", message])?;
+            Ok(())
+        }
+
+        fn create_file(&self, filename: &str, content: &str) -> Result<(), Error> {
+            let filepath = self.repo.workdir().unwrap().join(filename);
+            let mut file = std::fs::File::create(filepath)?;
+            file.write_all(content.as_bytes())?;
+            file.sync_all()?;
             Ok(())
         }
     }
 
     #[test]
     fn test_merged_branches() {
-        let fixture = TestRepository::create().unwrap();
+        let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
         // git remote add origin
@@ -144,9 +178,10 @@ mod tests {
         repo.remote_set_url("origin", example_repo_url)
             .expect("failed to set remote url");
 
+        fixture.create_empty_commit("initial commit").unwrap();
+
         // create a first branch
-        let main_branch = "main";
-        repo.command(&["switch", "-c", main_branch])
+        repo.command(&["switch", "-c", "main"])
             .expect("failed to switch to main branch");
 
         // create a new branch for testing
@@ -155,11 +190,8 @@ mod tests {
         repo.command(&["switch", "-c", branch_name])
             .expect("failed to switch to test branch");
 
-        // git commit --allow-empty -m "initial commit"
-        fixture.create_empty_commit("initial commit").unwrap();
-
         // switch to default branch
-        repo.command(&["switch", main_branch])
+        repo.switch("main")
             .expect("failed to switch to main branch");
 
         // git merge $branch_name
@@ -169,8 +201,6 @@ mod tests {
         // now test_branch is same as default branch so it should be merged
         match repo.merged_branches() {
             Ok(branches) => {
-                println!("{:?}", branches);
-                println!("{:?}", vec![main_branch, branch_name]);
                 assert!(branches.contains(&branch_name.to_string()));
             }
             Err(e) => {
@@ -181,12 +211,11 @@ mod tests {
 
     #[test]
     fn test_is_empty() {
-        let fixture = TestRepository::create().unwrap();
+        let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
         assert!(repo.is_empty().unwrap(), "repo is empty when initialized");
 
-        // git commit --allow-empty -m "initial commit"
         fixture.create_empty_commit("initial commit").unwrap();
 
         assert!(!repo.is_empty().unwrap(), "repo is not empty after commit");
@@ -194,7 +223,7 @@ mod tests {
 
     #[test]
     fn test_is_remote_exists() {
-        let fixture = TestRepository::create().unwrap();
+        let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
         assert!(
@@ -216,71 +245,73 @@ mod tests {
 
     #[test]
     fn test_has_unsaved_and_is_clean() {
-        let fixture = TestRepository::create().unwrap();
+        let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
-        assert!(repo.is_clean().unwrap(), "repo is clean when initialized");
         assert!(
-            !repo.has_unsaved().unwrap(),
+            repo.is_clean().unwrap() && !repo.has_unsaved().unwrap(),
             "repo is clean when initialized"
         );
 
-        // write file
-        let filepath = repo.workdir().unwrap().join("something.txt");
-        let mut file = std::fs::File::create(filepath).unwrap();
-        file.write_all("hello".as_bytes()).unwrap();
-        file.sync_all().unwrap();
+        fixture.create_file("1.txt", "hello").unwrap();
 
-        assert!(!repo.is_clean().unwrap(), "repo is dirty because of file");
-        assert!(repo.has_unsaved().unwrap(), "repo is dirty because of file");
+        assert!(
+            !repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),
+            "repo is dirty because of file"
+        );
 
-        // git commit -m "initial commit"
-        let sig = repo.signature().unwrap();
-        let tree_id = {
-            let mut index = repo.index().unwrap();
-            index
-                .add_all(&["something.txt"], git2::IndexAddOption::DEFAULT, None)
-                .unwrap();
-            index.write_tree().unwrap()
-        };
-        let tree = repo.find_tree(tree_id).unwrap();
-        repo.commit(Some("HEAD"), &sig, &sig, "initial commit", &tree, &[])
-            .unwrap();
+        repo.command(&["add", "1.txt"])
+            .expect("failed to add 1.txt");
 
-        assert!(repo.is_clean().unwrap(), "repo is clean after commit");
-        assert!(!repo.has_unsaved().unwrap(), "repo is clean after commit");
+        assert!(
+            !repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),
+            "staged but not committed file is dirty"
+        );
 
-        // git checkout -b feature
+        repo.command(&["commit", "-m", "add 1.txt"])
+            .expect("failed to commit");
+
+        assert!(
+            repo.is_clean().unwrap() && !repo.has_unsaved().unwrap(),
+            "repo is clean after commit"
+        );
+
         repo.command(&["switch", "-c", "feature"])
             .expect("failed to switch to feature branch");
 
-        // write file
-        let filepath = repo.workdir().unwrap().join("something2.txt");
-        let mut file = std::fs::File::create(filepath).unwrap();
-        file.write_all("hello".as_bytes()).unwrap();
-        file.sync_all().unwrap();
+        fixture.create_file("2.txt", "hello").unwrap();
 
-        assert!(!repo.is_clean().unwrap(), "unstaged file is dirty");
-        assert!(repo.has_unsaved().unwrap(), "unstaged file is dirty");
+        assert!(
+            !repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),
+            "unstaged file is dirty"
+        );
 
-        // git add something2.txt
-        repo.command(&["add", "something2.txt"])
-            .expect("failed to add something2.txt");
+        repo.command(&["add", "2.txt"])
+            .expect("failed to add 2.txt");
 
-        assert!(repo.is_clean().unwrap(), "repo is clean after commit");
-        assert!(!repo.has_unsaved().unwrap(), "repo is clean after commit");
+        assert!(
+            !repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),
+            "staged but not committed file is dirty"
+        );
+
+        repo.command(&["commit", "-m", "add 2.txt"])
+            .expect("failed to commit");
+
+        assert!(
+            repo.is_clean().unwrap() && !repo.has_unsaved().unwrap(),
+            "repo is clean after commit"
+        );
     }
 
     #[test]
     fn test_get_current_branch() {
-        let fixture = TestRepository::create().unwrap();
+        let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
         if let Ok(it) = repo.get_current_branch() {
             panic!("current branch will be empty: {}", it);
         }
 
-        // git commit --allow-empty -m "initial commit"
         fixture.create_empty_commit("initial commit").unwrap();
 
         match repo.get_current_branch() {
@@ -291,5 +322,55 @@ mod tests {
             },
             Err(it) => panic!("something went wrong!! {}", it),
         }
+    }
+
+    #[test]
+    fn test_switch() {
+        let fixture = Fixture::create().unwrap();
+        let repo = &fixture.repo;
+
+        // switch to main branch before first commit will fail
+        assert!(repo.switch("main").is_err());
+        fixture.create_empty_commit("initial commit").unwrap();
+
+        repo.command(&["switch", "-c", "main"])
+            .expect("failed to switch to main branch");
+
+        repo.command(&["switch", "-c", "feature"])
+            .expect("failed to switch to main branch");
+
+        repo.switch("main")
+            .expect("failed to switch to main branch");
+    }
+
+    #[test]
+    fn test_delete_branch() {
+        let fixture = Fixture::create().unwrap();
+        let repo = &fixture.repo;
+
+        fixture.create_empty_commit("initial commit").unwrap();
+        repo.command(&["switch", "-c", "main"])
+            .expect("failed to switch to main branch");
+
+        repo.command(&["switch", "-c", "feature"])
+            .expect("failed to switch to feature branch");
+
+        repo.switch("main")
+            .expect("failed to switch to main branch");
+
+        let count_before = repo.branches(None).unwrap().count();
+
+        repo.delete_branch("feature")
+            .expect("failed to delete feature branch");
+
+        let count_after = repo.branches(None).unwrap().count();
+
+        // feature branch must be deleted
+        // note: count_before may be 2 or 3 depending on git config --global init.defaultBranch
+        assert_eq!(
+            count_before - count_after,
+            1,
+            "feature branch must be deleted"
+        );
     }
 }
