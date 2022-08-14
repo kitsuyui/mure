@@ -323,4 +323,35 @@ mod tests {
             Err(it) => panic!("something went wrong!! {}", it),
         }
     }
+
+    #[test]
+    fn test_delete_branch() {
+        let fixture = Fixture::create().unwrap();
+        let repo = &fixture.repo;
+
+        fixture.create_empty_commit("initial commit").unwrap();
+        repo.command(&["switch", "-c", "main"])
+            .expect("failed to switch to main branch");
+
+        repo.command(&["switch", "-c", "feature"])
+            .expect("failed to switch to feature branch");
+
+        repo.switch("main")
+            .expect("failed to switch to main branch");
+
+        let count_before = repo.branches(None).unwrap().count();
+
+        repo.delete_branch("feature")
+            .expect("failed to delete feature branch");
+
+        let count_after = repo.branches(None).unwrap().count();
+
+        // feature branch must be deleted
+        // note: count_before may be 2 or 3 depending on git config --global init.defaultBranch
+        assert_eq!(
+            count_before - count_after,
+            1,
+            "feature branch must be deleted"
+        );
+    }
 }
