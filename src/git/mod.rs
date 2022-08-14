@@ -325,6 +325,25 @@ mod tests {
     }
 
     #[test]
+    fn test_switch() {
+        let fixture = Fixture::create().unwrap();
+        let repo = &fixture.repo;
+
+        // switch to main branch before first commit will fail
+        assert!(repo.switch("main").is_err());
+        fixture.create_empty_commit("initial commit").unwrap();
+
+        repo.command(&["switch", "-c", "main"])
+            .expect("failed to switch to main branch");
+
+        repo.command(&["switch", "-c", "feature"])
+            .expect("failed to switch to main branch");
+
+        repo.switch("main")
+            .expect("failed to switch to main branch");
+    }
+
+    #[test]
     fn test_delete_branch() {
         let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
