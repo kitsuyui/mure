@@ -7,21 +7,15 @@ pub fn get_default_branch() -> Result<String, Error> {
         .arg("view")
         .arg("--json")
         .arg("defaultBranchRef")
-        .arg("--jq")
-        .arg(".defaultBranchRef.name")
+        .arg("-t")
+        .arg("{{.defaultBranchRef.name}}")
         .output()?;
 
     if !result.status.success() {
-        // TODO: better error message
         let error = String::from_utf8(result.stderr).unwrap();
         return Err(Error::from_str(&error));
     }
-
-    let raw_branch_name = String::from_utf8(result.stdout.to_vec());
-    match raw_branch_name {
-        Ok(branch_name) => Ok(branch_name.trim_end_matches('\n').to_string()),
-        Err(e) => Err(Error::from_str(&e.to_string())),
-    }
+    Ok(String::from_utf8(result.stdout.to_vec()).unwrap())
 }
 
 #[cfg(test)]
