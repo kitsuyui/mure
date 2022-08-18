@@ -213,11 +213,13 @@ mod tests {
         let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
-        assert!(repo.is_empty().unwrap(), "repo is empty when initialized");
+        // repo is empty when just initialized
+        assert!(repo.is_empty().unwrap());
 
         fixture.create_empty_commit("initial commit").unwrap();
 
-        assert!(!repo.is_empty().unwrap(), "repo is not empty after commit");
+        // repo is not empty after commit
+        assert!(!repo.is_empty().unwrap());
     }
 
     #[test]
@@ -225,21 +227,18 @@ mod tests {
         let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
-        assert!(
-            !repo.is_remote_exists().unwrap(),
-            "remote is not exists when initialized"
-        );
+        // remote is not exists when initialized
+        assert!(!repo.is_remote_exists().unwrap());
 
         // git remote add origin
         let example_repo_url = "https://github.com/kitsuyui/kitsuyui.git";
         repo.remote_set_url("origin", example_repo_url)
             .expect("failed to set remote url");
 
-        assert!(
-            repo.is_remote_exists()
-                .expect("failed to check remote exists"),
-            "now remote must be set"
-        );
+        // now remote must be set
+        assert!(repo
+            .is_remote_exists()
+            .expect("failed to check remote exists"));
     }
 
     #[test]
@@ -247,59 +246,45 @@ mod tests {
         let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
-        assert!(
-            repo.is_clean().unwrap() && !repo.has_unsaved().unwrap(),
-            "repo is clean when initialized"
-        );
+        // repo is clean when initialized
+        assert!(repo.is_clean().unwrap() && !repo.has_unsaved().unwrap());
 
         fixture.create_file("1.txt", "hello").unwrap();
 
-        assert!(
-            !repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),
-            "repo is dirty because of file"
-        );
+        // repo is dirty because of file
+        assert!(!repo.is_clean().unwrap() && repo.has_unsaved().unwrap());
 
         repo.command(&["add", "1.txt"])
             .expect("failed to add 1.txt");
 
-        assert!(
-            !repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),
-            "staged but not committed file is dirty"
-        );
+        // staged but not committed file is dirty
+        assert!(!repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),);
 
         repo.command(&["commit", "-m", "add 1.txt"])
             .expect("failed to commit");
 
-        assert!(
-            repo.is_clean().unwrap() && !repo.has_unsaved().unwrap(),
-            "repo is clean after commit"
-        );
+        // repo is clean because of committed file
+        assert!(repo.is_clean().unwrap() && !repo.has_unsaved().unwrap());
 
         repo.command(&["switch", "-c", "feature"])
             .expect("failed to switch to feature branch");
 
         fixture.create_file("2.txt", "hello").unwrap();
 
-        assert!(
-            !repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),
-            "unstaged file is dirty"
-        );
+        // repo is dirty because of file
+        assert!(!repo.is_clean().unwrap() && repo.has_unsaved().unwrap());
 
         repo.command(&["add", "2.txt"])
             .expect("failed to add 2.txt");
 
-        assert!(
-            !repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),
-            "staged but not committed file is dirty"
-        );
+        // staged but not committed file is dirty
+        assert!(!repo.is_clean().unwrap() && repo.has_unsaved().unwrap());
 
         repo.command(&["commit", "-m", "add 2.txt"])
             .expect("failed to commit");
 
-        assert!(
-            repo.is_clean().unwrap() && !repo.has_unsaved().unwrap(),
-            "repo is clean after commit"
-        );
+        // repo is clean because of committed file
+        assert!(repo.is_clean().unwrap() && !repo.has_unsaved().unwrap());
     }
 
     #[test]
@@ -366,10 +351,6 @@ mod tests {
 
         // feature branch must be deleted
         // note: count_before may be 2 or 3 depending on git config --global init.defaultBranch
-        assert_eq!(
-            count_before - count_after,
-            1,
-            "feature branch must be deleted"
-        );
+        assert_eq!(count_before - count_after, 1);
     }
 }
