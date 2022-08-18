@@ -18,7 +18,6 @@ pub trait RepositorySupport {
 
 impl RepositorySupport for Repository {
     fn merged_branches(&self) -> Result<Vec<String>, Error> {
-        let mut branches = Vec::new();
         // git for-each-ref --format=%(refname:short) refs/heads/**/* --merged
         let result = self.command(&[
             "for-each-ref",
@@ -26,13 +25,7 @@ impl RepositorySupport for Repository {
             "refs/heads/**/*",
             "--merged",
         ])?;
-        let stdout = String::from_utf8(result.stdout).unwrap();
-        for line in stdout.split('\n') {
-            if !line.is_empty() {
-                branches.push(line.to_string());
-            }
-        }
-        Ok(branches)
+        Ok(split_lines(String::from_utf8(result.stdout).unwrap()))
     }
     fn is_clean(&self) -> Result<bool, Error> {
         Ok(!self.has_unsaved()?)
@@ -113,6 +106,14 @@ impl From<git2::Error> for Error {
     }
 }
 
+fn split_lines(lines: String) -> Vec<String> {
+    lines
+        .split('\n')
+        .map(|s| s.to_string())
+        .filter(|s| !s.is_empty())
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -165,6 +166,13 @@ mod tests {
             file.sync_all()?;
             Ok(())
         }
+    }
+
+    #[test]
+    fn test_split_lines() {
+        let lines = "a\nb\nc\n".to_string();
+        let expected = vec!["a", "b", "c"];
+        assert_eq!(split_lines(lines), expected);
     }
 
     #[test]
