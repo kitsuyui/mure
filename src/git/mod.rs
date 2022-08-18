@@ -61,7 +61,7 @@ impl RepositorySupport for Repository {
         }
     }
     fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<Output, Error> {
-        let output = self.command(&["pull", "--ff-only", remote, branch, branch])?;
+        let output = self.command(&["pull", "--ff-only", remote, branch])?;
         if !output.status.success() {
             return Err(Error::from_str(&format!(
                 "failed to pull fast forward: {}",
@@ -293,6 +293,36 @@ mod tests {
 
         // repo is clean because of committed file
         assert!(repo.is_clean().unwrap() && !repo.has_unsaved().unwrap());
+    }
+
+    #[test]
+    fn test_pull_fast_forwarded() {
+        let fixture1 = Fixture::create().unwrap();
+        let repo1 = &fixture1.repo;
+
+        let fixture2 = Fixture::create().unwrap();
+        let repo2 = &fixture2.repo;
+
+        fixture1.create_empty_commit("initial commit").unwrap();
+        repo1
+            .command(&["switch", "-c", "main"])
+            .expect("failed to switch to main branch");
+
+        let remote_path = format!("{}{}", repo1.workdir().unwrap().to_str().unwrap(), ".git");
+        repo2
+            .command(&["remote", "add", "origin", &remote_path])
+            .expect("failed to add remote");
+        repo2
+            .command(&["checkout", "-b", "main", "origin/main"])
+            .expect("failed to fetch");
+
+        fixture1.create_empty_commit("second commit").unwrap();
+        repo2.pull_fast_forwarded("origin", "main").unwrap();
+
+        fixture1.create_empty_commit("commit A").unwrap();
+        fixture2.create_empty_commit("commit B").unwrap();
+        let result = repo2.pull_fast_forwarded("origin", "main");
+        assert!(result.is_err());
     }
 
     #[test]
