@@ -1,6 +1,5 @@
 use std::process::{Command, Output};
 
-/// Wrapper of git2 and git commands.
 use git2::{BranchType, Repository};
 
 use crate::mure_error::Error;
