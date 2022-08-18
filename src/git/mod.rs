@@ -300,8 +300,7 @@ mod tests {
 
         match repo.get_current_branch() {
             Ok(it) => match it.as_str() {
-                "master" => {}
-                "main" => {}
+                "master" | "main" => {}
                 _ => panic!("something went wrong! {}", it),
             },
             Err(it) => panic!("something went wrong!! {}", it),
