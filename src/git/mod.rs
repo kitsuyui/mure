@@ -1,6 +1,5 @@
 use std::process::{Command, Output};
 
-/// Wrapper of git2 and git commands.
 use git2::{BranchType, Repository};
 
 use crate::mure_error::Error;
@@ -19,7 +18,6 @@ pub trait RepositorySupport {
 
 impl RepositorySupport for Repository {
     fn merged_branches(&self) -> Result<Vec<String>, Error> {
-        let mut branches = Vec::new();
         // git for-each-ref --format=%(refname:short) refs/heads/**/* --merged
         let result = self.command(&[
             "for-each-ref",
@@ -27,13 +25,7 @@ impl RepositorySupport for Repository {
             "refs/heads/**/*",
             "--merged",
         ])?;
-        let stdout = String::from_utf8(result.stdout).unwrap();
-        for line in stdout.split('\n') {
-            if !line.is_empty() {
-                branches.push(line.to_string());
-            }
-        }
-        Ok(branches)
+        Ok(split_lines(String::from_utf8(result.stdout).unwrap()))
     }
     fn is_clean(&self) -> Result<bool, Error> {
         Ok(!self.has_unsaved()?)
@@ -69,7 +61,7 @@ impl RepositorySupport for Repository {
         }
     }
     fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<Output, Error> {
-        let output = self.command(&["pull", "--ff-only", remote, branch, branch])?;
+        let output = self.command(&["pull", "--ff-only", remote, branch])?;
         if !output.status.success() {
             return Err(Error::from_str(&format!(
                 "failed to pull fast forward: {}",
@@ -112,6 +104,14 @@ impl From<git2::Error> for Error {
     fn from(e: git2::Error) -> Error {
         Error::from_str(&e.to_string())
     }
+}
+
+fn split_lines(lines: String) -> Vec<String> {
+    lines
+        .split('\n')
+        .map(|s| s.to_string())
+        .filter(|s| !s.is_empty())
+        .collect()
 }
 
 #[cfg(test)]
@@ -169,6 +169,13 @@ mod tests {
     }
 
     #[test]
+    fn test_split_lines() {
+        let lines = "a\nb\nc\n".to_string();
+        let expected = vec!["a", "b", "c"];
+        assert_eq!(split_lines(lines), expected);
+    }
+
+    #[test]
     fn test_merged_branches() {
         let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
@@ -214,11 +221,13 @@ mod tests {
         let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
-        assert!(repo.is_empty().unwrap(), "repo is empty when initialized");
+        // repo is empty when just initialized
+        assert!(repo.is_empty().unwrap());
 
         fixture.create_empty_commit("initial commit").unwrap();
 
-        assert!(!repo.is_empty().unwrap(), "repo is not empty after commit");
+        // repo is not empty after commit
+        assert!(!repo.is_empty().unwrap());
     }
 
     #[test]
@@ -226,21 +235,18 @@ mod tests {
         let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
-        assert!(
-            !repo.is_remote_exists().unwrap(),
-            "remote is not exists when initialized"
-        );
+        // remote is not exists when initialized
+        assert!(!repo.is_remote_exists().unwrap());
 
         // git remote add origin
         let example_repo_url = "https://github.com/kitsuyui/kitsuyui.git";
         repo.remote_set_url("origin", example_repo_url)
             .expect("failed to set remote url");
 
-        assert!(
-            repo.is_remote_exists()
-                .expect("failed to check remote exists"),
-            "now remote must be set"
-        );
+        // now remote must be set
+        assert!(repo
+            .is_remote_exists()
+            .expect("failed to check remote exists"));
     }
 
     #[test]
@@ -248,59 +254,75 @@ mod tests {
         let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
-        assert!(
-            repo.is_clean().unwrap() && !repo.has_unsaved().unwrap(),
-            "repo is clean when initialized"
-        );
+        // repo is clean when initialized
+        assert!(repo.is_clean().unwrap() && !repo.has_unsaved().unwrap());
 
         fixture.create_file("1.txt", "hello").unwrap();
 
-        assert!(
-            !repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),
-            "repo is dirty because of file"
-        );
+        // repo is dirty because of file
+        assert!(!repo.is_clean().unwrap() && repo.has_unsaved().unwrap());
 
         repo.command(&["add", "1.txt"])
             .expect("failed to add 1.txt");
 
-        assert!(
-            !repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),
-            "staged but not committed file is dirty"
-        );
+        // staged but not committed file is dirty
+        assert!(!repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),);
 
         repo.command(&["commit", "-m", "add 1.txt"])
             .expect("failed to commit");
 
-        assert!(
-            repo.is_clean().unwrap() && !repo.has_unsaved().unwrap(),
-            "repo is clean after commit"
-        );
+        // repo is clean because of committed file
+        assert!(repo.is_clean().unwrap() && !repo.has_unsaved().unwrap());
 
         repo.command(&["switch", "-c", "feature"])
             .expect("failed to switch to feature branch");
 
         fixture.create_file("2.txt", "hello").unwrap();
 
-        assert!(
-            !repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),
-            "unstaged file is dirty"
-        );
+        // repo is dirty because of file
+        assert!(!repo.is_clean().unwrap() && repo.has_unsaved().unwrap());
 
         repo.command(&["add", "2.txt"])
             .expect("failed to add 2.txt");
 
-        assert!(
-            !repo.is_clean().unwrap() && repo.has_unsaved().unwrap(),
-            "staged but not committed file is dirty"
-        );
+        // staged but not committed file is dirty
+        assert!(!repo.is_clean().unwrap() && repo.has_unsaved().unwrap());
 
         repo.command(&["commit", "-m", "add 2.txt"])
             .expect("failed to commit");
 
-        assert!(
-            repo.is_clean().unwrap() && !repo.has_unsaved().unwrap(),
-            "repo is clean after commit"
-        );
+        // repo is clean because of committed file
+        assert!(repo.is_clean().unwrap() && !repo.has_unsaved().unwrap());
+    }
+
+    #[test]
+    fn test_pull_fast_forwarded() {
+        let fixture1 = Fixture::create().unwrap();
+        let repo1 = &fixture1.repo;
+
+        let fixture2 = Fixture::create().unwrap();
+        let repo2 = &fixture2.repo;
+
+        fixture1.create_empty_commit("initial commit").unwrap();
+        repo1
+            .command(&["switch", "-c", "main"])
+            .expect("failed to switch to main branch");
+
+        let remote_path = format!("{}{}", repo1.workdir().unwrap().to_str().unwrap(), ".git");
+        repo2
+            .command(&["remote", "add", "origin", &remote_path])
+            .expect("failed to add remote");
+        repo2
+            .command(&["checkout", "-b", "main", "origin/main"])
+            .expect("failed to fetch");
+
+        fixture1.create_empty_commit("second commit").unwrap();
+        repo2.pull_fast_forwarded("origin", "main").unwrap();
+
+        fixture1.create_empty_commit("commit A").unwrap();
+        fixture2.create_empty_commit("commit B").unwrap();
+        let result = repo2.pull_fast_forwarded("origin", "main");
+        assert!(result.is_err());
     }
 
     #[test]
@@ -316,8 +338,7 @@ mod tests {
 
         match repo.get_current_branch() {
             Ok(it) => match it.as_str() {
-                "master" => {}
-                "main" => {}
+                "master" | "main" => {}
                 _ => panic!("something went wrong! {}", it),
             },
             Err(it) => panic!("something went wrong!! {}", it),
@@ -367,10 +388,14 @@ mod tests {
 
         // feature branch must be deleted
         // note: count_before may be 2 or 3 depending on git config --global init.defaultBranch
+        assert_eq!(count_before - count_after, 1);
+
+        // try to delete already deleted branch again
+        let result = repo.delete_branch("feature");
+        assert!(result.is_err());
         assert_eq!(
-            count_before - count_after,
-            1,
-            "feature branch must be deleted"
+            result.err().unwrap().message,
+            "failed to delete branch feature: error: branch 'feature' not found.\n"
         );
     }
 }
