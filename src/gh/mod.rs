@@ -3,12 +3,14 @@ use std::process::Command;
 
 pub fn get_default_branch() -> Result<String, Error> {
     let result = Command::new("gh")
-        .arg("repo")
-        .arg("view")
-        .arg("--json")
-        .arg("defaultBranchRef")
-        .arg("-t")
-        .arg("{{.defaultBranchRef.name}}")
+        .args(&[
+            "repo",
+            "view",
+            "--json",
+            "defaultBranchRef",
+            "-t",
+            "{{.defaultBranchRef.name}}",
+        ])
         .output()?;
 
     if !result.status.success() {
