@@ -351,5 +351,13 @@ mod tests {
         // feature branch must be deleted
         // note: count_before may be 2 or 3 depending on git config --global init.defaultBranch
         assert_eq!(count_before - count_after, 1);
+
+        // try to delete already deleted branch again
+        let result = repo.delete_branch("feature");
+        assert!(result.is_err());
+        assert_eq!(
+            result.err().unwrap().message,
+            "failed to delete branch feature: error: branch 'feature' not found.\n"
+        );
     }
 }
