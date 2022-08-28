@@ -20,6 +20,7 @@ pub fn search_all_repositories(
         vec![] as Vec<search_repository_query::SearchRepositoryQueryReposEdgesNodeOnRepository>;
 
     let mut cursor = None as Option<String>;
+    let mut count = 0;
     loop {
         let variables = search_repository_query::Variables {
             query: query.to_string(),
@@ -50,6 +51,11 @@ pub fn search_all_repositories(
             Err(err) => {
                 return Err(err);
             }
+        }
+        count += 1;
+        if count > 100 {
+            // Avoid infinite loop to prevent reaching github api limit.
+            break;
         }
     }
     Ok(results)
