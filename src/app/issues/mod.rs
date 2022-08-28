@@ -7,7 +7,7 @@ pub struct RepositorySummary {
     pub name: String,
     pub number_of_issues: i64,
     pub number_of_pull_requests: i64,
-    pub default_branch_name: String,
+    pub default_branch_name: Option<String>,
     pub url: String,
 }
 
@@ -20,18 +20,20 @@ pub fn repository_summary(
             name: repo.name.clone(),
             number_of_issues: repo.issues.total_count,
             number_of_pull_requests: repo.pull_requests.total_count,
-            default_branch_name: repo.default_branch_ref.unwrap().name.clone(),
+            default_branch_name: repo
+                .default_branch_ref
+                .as_ref()
+                .map(|default_branch_ref| default_branch_ref.name.clone()),
             url: repo.url.clone(),
         });
     }
     Ok(results)
 }
 
-pub fn show_issues(user: &str) -> Result<(), Error> {
+pub fn show_issues(query: &str) -> Result<(), Error> {
     // TODO: more flexible search query
-    let query = format!("user:{} is:public fork:false archived:false", user);
     let token = std::env::var("GH_TOKEN").expect("GH_TOKEN is not set");
-    match github::api::search_all_repositories(token, query) {
+    match github::api::search_all_repositories(&token, query) {
         Err(e) => println!("{}", e),
         Ok(result) => {
             match repository_summary(result) {
@@ -43,7 +45,7 @@ pub fn show_issues(user: &str) -> Result<(), Error> {
                             "{}\t{}\t{}\t{}",
                             result.number_of_issues,
                             result.number_of_pull_requests,
-                            result.default_branch_name,
+                            result.default_branch_name.unwrap_or_else(|| "".to_string()),
                             result.url
                         );
                     }

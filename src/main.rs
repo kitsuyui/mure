@@ -30,10 +30,19 @@ fn main() {
                 Err(e) => println!("{}", e),
             }
         }
-        Some(("issues", _)) => match app::issues::show_issues(&config.github.username) {
-            Ok(_) => (),
-            Err(e) => println!("{}", e),
-        },
+        Some(("issues", matches)) => {
+            let query = match matches.get_one::<String>("query") {
+                Some(query) => query.to_string(),
+                None => format!(
+                    "user:{} is:public fork:false archived:false",
+                    &config.github.username
+                ),
+            };
+            match app::issues::show_issues(&query) {
+                Ok(_) => (),
+                Err(e) => println!("{}", e),
+            }
+        }
         Some(("clone", matches)) => {
             let repo_url = matches.get_one::<String>("url").unwrap();
             match app::clone::clone(&config, repo_url) {
@@ -55,7 +64,13 @@ fn parser() -> App<'static> {
             .required(false)
             .index(1),
     );
-    let subcommand_issues = App::new("issues").about("show issues");
+    let subcommand_issues = App::new("issues").about("show issues").arg(
+        clap::Arg::new("query")
+            .short('q')
+            .long("query")
+            .takes_value(true)
+            .help("query to search issues"),
+    );
     let subcommand_clone = App::new("clone").about("clone repository").arg(
         clap::Arg::with_name("url")
             .help("repository url")
@@ -93,7 +108,7 @@ fn test_parser() {
         }
     }
     let cmd = parser();
-    match cmd.get_matches_from_safe(["mure", "issues"]) {
+    match cmd.get_matches_from_safe(["mure", "issues", "--query", "test"]) {
         Ok(matches) => {
             assert_eq!(matches.subcommand_name(), Some("issues"));
         }

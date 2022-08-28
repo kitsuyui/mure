@@ -13,8 +13,8 @@ type URI = String;
 pub struct SearchRepositoryQuery;
 
 pub fn search_all_repositories(
-    token: String,
-    query: String,
+    token: &str,
+    query: &str,
 ) -> Result<Vec<search_repository_query::SearchRepositoryQueryReposEdgesNodeOnRepository>, Error> {
     let mut results =
         vec![] as Vec<search_repository_query::SearchRepositoryQueryReposEdgesNodeOnRepository>;
@@ -22,11 +22,11 @@ pub fn search_all_repositories(
     let mut cursor = None as Option<String>;
     loop {
         let variables = search_repository_query::Variables {
-            query: query.clone(),
+            query: query.to_string(),
             first: 100,
             cursor,
         };
-        let response = search_repositories(token.clone(), variables);
+        let response = search_repositories(token, variables);
         match response {
             Ok(response) => {
                 let page_info = response.repos.page_info;
@@ -56,7 +56,7 @@ pub fn search_all_repositories(
 }
 
 fn search_repositories(
-    token: String,
+    token: &str,
     variables: search_repository_query::Variables,
 ) -> Result<search_repository_query::ResponseData, Error> {
     let request_body = SearchRepositoryQuery::build_query(variables);
