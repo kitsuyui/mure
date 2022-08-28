@@ -1,5 +1,15 @@
-query SearchRepositoryQuery($query: String!) {
-  repos: search(query: $query, type: REPOSITORY, first: 100) {
+query SearchRepositoryQuery($query: String!, $cursor: String, $first: Int!) {
+  repos: search(
+    query: $query
+    type: REPOSITORY
+    first: $first
+    after: $cursor
+  ) {
+    pageInfo {
+      startCursor
+      endCursor
+      hasNextPage
+    }
     edges {
       node {
         __typename

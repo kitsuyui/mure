@@ -53,6 +53,13 @@ Example:
 
 <img width="1023" alt="example-mure-issues" src="https://user-images.githubusercontent.com/2596972/184259022-cb428537-f12e-41b0-8b49-a72565afa167.png">
 
+### Options
+
+`--query` option is available for advanced search like `--query 'user:kitsuyui'`
+See this page for more about advanced search: https://docs.github.com/en/search-github/searching-on-github/searching-for-repositories
+
+Default search query is `user:{username} is:public fork:false archived:false`
+
 ### mure refresh
 
 `mure refresh` updates the repository.
