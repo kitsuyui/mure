@@ -8,11 +8,54 @@ type URI = String;
 #[graphql(
     schema_path = "graphql/schema/schema.docs.graphql",
     query_path = "graphql/schema/query.graphql",
-    response_derives = "Debug,PartialEq,Eq"
+    response_derives = "Debug,PartialEq,Eq,Clone"
 )]
 pub struct SearchRepositoryQuery;
 
-pub fn search_repository(
+pub fn search_all_repositories(
+    token: String,
+    query: String,
+) -> Result<Vec<search_repository_query::SearchRepositoryQueryReposEdgesNodeOnRepository>, Error> {
+    let mut results =
+        vec![] as Vec<search_repository_query::SearchRepositoryQueryReposEdgesNodeOnRepository>;
+
+    let mut cursor = None as Option<String>;
+    loop {
+        let variables = search_repository_query::Variables {
+            query: query.clone(),
+            first: 100,
+            cursor,
+        };
+        let response = search_repositories(token.clone(), variables);
+        match response {
+            Ok(response) => {
+                let page_info = response.repos.page_info;
+                let edges = response.repos.edges;
+                if let Some(edge) = edges {
+                    for edge_ in edge {
+                        let node = edge_.expect("edge is None").node.expect("node is None");
+                        if let search_repository_query::SearchRepositoryQueryReposEdgesNode::Repository(repo) =
+                            node
+                        {
+                            results.push(repo);
+                        }
+                    }
+                }
+                if page_info.has_next_page {
+                    cursor = page_info.end_cursor;
+                } else {
+                    break;
+                }
+            }
+            Err(err) => {
+                return Err(err);
+            }
+        }
+    }
+    Ok(results)
+}
+
+fn search_repositories(
     token: String,
     variables: search_repository_query::Variables,
 ) -> Result<search_repository_query::ResponseData, Error> {
