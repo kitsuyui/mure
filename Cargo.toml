@@ -1,6 +1,6 @@
 [package]
 name = "mure"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 authors = ["Yui Kitsu <kitsuyui+github@kitsuyui.com>"]
 description = "A command line tool for creating and managing multiple repositories."
