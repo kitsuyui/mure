@@ -84,6 +84,12 @@ function mcd { local p=$(mure path "$1") && cd "$p" }
 mcd something  # => Same as `cd $HOME/.dev/something`
 ```
 
+You can set the above shims by running the following command during shell initialization:
+
+```sh
+eval $(mure init --shell)
+```
+
 ## License
 
 BSD-3-Clause

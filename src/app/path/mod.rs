@@ -8,6 +8,10 @@ pub fn path(config: &Config, name: &str) -> Result<(), Error> {
     Ok(())
 }
 
+pub fn shell_shims() -> String {
+    "function mcd { local p=$(mure path \"$1\") && cd \"$p\" }\n".to_string()
+}
+
 fn resolve(config: &Config, name: &str) -> Result<PathBuf, Error> {
     let path_ = config.base_path().join(name);
     if path_.is_dir() && path_.exists() {
