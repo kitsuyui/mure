@@ -660,7 +660,7 @@ dependencies = [
 
 [[package]]
 name = "mure"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "assay",
  "clap",

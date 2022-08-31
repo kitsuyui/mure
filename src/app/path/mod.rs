@@ -15,7 +15,7 @@ pub fn shell_shims(config: &Config) -> String {
 
 fn shell_shims_for_cd_directly(bin_name: &str, fn_name: &str) -> String {
     format!(
-        "{fn_name} {{ local p=$({bin_name} path \"$1\") && cd \"$p\" }}\n",
+        "function {fn_name}() {{ local p=$({bin_name} path \"$1\") && cd \"$p\" }}\n",
         fn_name = fn_name,
         bin_name = bin_name
     )
@@ -71,6 +71,9 @@ mod tests {
     #[test]
     fn test_shell_shims() {
         let shims = shell_shims_for_cd_directly("mure", "mcd");
-        assert_eq!(shims, "mcd { local p=$(mure path \"$1\") && cd \"$p\" }\n");
+        assert_eq!(
+            shims,
+            "function mcd() { local p=$(mure path \"$1\") && cd \"$p\" }\n"
+        );
     }
 }
