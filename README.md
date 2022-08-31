@@ -34,6 +34,17 @@ base_dir = "~/.dev"
 
 [github]
 username = "kitsuyui"
+
+[shell]
+cd_shims = "mcd"
+```
+
+### Set up shell environment for mure
+
+Add following script to your shell configuration file such as `~/.bashrc`, `~/.zshrc` or etc.
+
+```sh
+eval $(mure init --shell)
 ```
 
 ### mure clone
@@ -64,31 +75,21 @@ Default search query is `user:{username} is:public fork:false archived:false`
 
 `mure refresh` updates the repository.
 
-### mure path
+### mcd
 
-`mure path` shows the path of the repository for given repository name.
-
-#### Example
-
-```bash
-mure path something # => $HOME/.dev/something
-```
-
-So you can cd directly to the repository by combining with the following shell function.
-
-```shell
-function mcd { local p=$(mure path "$1") && cd "$p" }
-```
+`mcd` is a command line shims for changing directory shortcut.
+mcd enables you to change directory into the repository.
 
 ```shell
 mcd something  # => Same as `cd $HOME/.dev/something`
 ```
 
-You can set the above shims by running the following command during shell initialization:
+You can change the name of the shim by set `shell.cd_shims` in `.mure.toml` to another name.
 
-```sh
-eval $(mure init --shell)
-```
+### mure path
+
+`mure path` shows the path of the repository for given repository name.
+(Internally, `mure path` is used for `mcd` command.)
 
 ## License
 

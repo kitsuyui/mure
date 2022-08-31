@@ -8,8 +8,17 @@ pub fn path(config: &Config, name: &str) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn shell_shims() -> String {
-    "function mcd { local p=$(mure path \"$1\") && cd \"$p\" }\n".to_string()
+pub fn shell_shims(config: &Config) -> String {
+    let fn_name = config.resolve_cd_shims();
+    shell_shims_for_cd_directly("mure", &fn_name)
+}
+
+fn shell_shims_for_cd_directly(bin_name: &str, fn_name: &str) -> String {
+    format!(
+        "{fn_name} {{ local p=$({bin_name} path \"$1\") && cd \"$p\" }}\n",
+        fn_name = fn_name,
+        bin_name = bin_name
+    )
 }
 
 fn resolve(config: &Config, name: &str) -> Result<PathBuf, Error> {
@@ -24,7 +33,7 @@ fn resolve(config: &Config, name: &str) -> Result<PathBuf, Error> {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::{Core, GitHub};
+    use crate::config::{Core, GitHub, Shell};
     use mktemp::Temp;
 
     use super::*;
@@ -39,6 +48,9 @@ mod tests {
             github: GitHub {
                 username: "".to_string(),
             },
+            shell: Some(Shell {
+                cd_shims: Some("mcd".to_string()),
+            }),
         };
         git2::Repository::init(config.base_path().join("test_repo")).unwrap();
         let path = resolve(&config, "test_repo").unwrap();
@@ -54,5 +66,11 @@ mod tests {
             .unwrap_err()
             .to_string()
             .ends_with("test_repo2 is not a git repository"));
+    }
+
+    #[test]
+    fn test_shell_shims() {
+        let shims = shell_shims_for_cd_directly("mure", "mcd");
+        assert_eq!(shims, "mcd { local p=$(mure path \"$1\") && cd \"$p\" }\n");
     }
 }

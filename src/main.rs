@@ -13,7 +13,7 @@ fn main() {
     match matches.subcommand() {
         Some(("init", matches)) => {
             if matches.is_present("shell") {
-                println!("{}", app::path::shell_shims());
+                println!("{}", app::path::shell_shims(&config));
             } else {
                 match app::initialize::init() {
                     Ok(_) => {

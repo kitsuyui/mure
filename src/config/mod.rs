@@ -16,6 +16,7 @@ use serde_derive::{Deserialize, Serialize};
 pub struct Config {
     pub core: Core,
     pub github: GitHub,
+    pub shell: Option<Shell>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -29,11 +30,17 @@ pub struct GitHub {
     pub username: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Shell {
+    pub cd_shims: Option<String>,
+}
+
 pub trait ConfigSupport {
     fn base_path(&self) -> PathBuf;
     fn repos_store_path(&self) -> PathBuf;
     fn repo_store_path(&self, domain: &str, owner: &str, repo: &str) -> PathBuf;
     fn repo_work_path(&self, domain: &str, owner: &str, repo: &str) -> PathBuf;
+    fn resolve_cd_shims(&self) -> String;
 }
 
 impl ConfigSupport for Config {
@@ -49,6 +56,13 @@ impl ConfigSupport for Config {
     }
     fn repo_work_path(&self, _domain: &str, _owner: &str, repo: &str) -> PathBuf {
         self.base_path().join(repo)
+    }
+    fn resolve_cd_shims(&self) -> String {
+        let default = "mcd".to_string();
+        match &self.shell {
+            Some(shell) => shell.cd_shims.clone().unwrap_or(default),
+            None => default,
+        }
     }
 }
 
@@ -77,6 +91,9 @@ fn create_config(path: &Path) -> Result<Config, Error> {
         github: GitHub {
             username: "".to_string(),
         },
+        shell: Some(Shell {
+            cd_shims: Some("mcd".to_string()),
+        }),
     };
     let content = toml::to_string(&config)?;
     let mut file = File::create(path)?;
@@ -130,6 +147,9 @@ mod tests {
 
             [github]
             username = "kitsuyui"
+
+            [shell]
+            cd_shims = "mcd"
         "#,
         )
         .unwrap();
