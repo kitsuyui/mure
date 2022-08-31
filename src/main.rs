@@ -63,7 +63,6 @@ fn main() {
 
 /// Parser
 fn parser() -> App<'static> {
-    // TODO: subcommand "init" to create ~/.mure.toml
     let subcommand_init = App::new("init").about("create ~/.mure.toml");
     let subcommand_refresh = App::new("refresh").about("refresh repository").arg(
         clap::Arg::with_name("repository")
