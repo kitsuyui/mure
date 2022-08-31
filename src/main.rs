@@ -50,6 +50,13 @@ fn main() {
                 Err(e) => println!("{}", e),
             }
         }
+        Some(("path", matches)) => {
+            let name = matches.get_one::<String>("name").unwrap();
+            match app::path::path(&config, name) {
+                Ok(_) => (),
+                Err(e) => println!("{}", e),
+            }
+        }
         _ => unreachable!("unreachable!"),
     };
 }
@@ -77,13 +84,20 @@ fn parser() -> App<'static> {
             .required(true)
             .index(1),
     );
+    let subcommand_path = App::new("path").about("show repository path for name").arg(
+        clap::Arg::with_name("name")
+            .help("repository name")
+            .required(true)
+            .index(1),
+    );
     let cmd = clap::Command::new("mure")
         .bin_name("mure")
         .subcommand_required(true)
         .subcommand(subcommand_init)
         .subcommand(subcommand_refresh)
         .subcommand(subcommand_issues)
-        .subcommand(subcommand_clone);
+        .subcommand(subcommand_clone)
+        .subcommand(subcommand_path);
     cmd
 }
 
@@ -120,6 +134,15 @@ fn test_parser() {
     match cmd.get_matches_from_safe(["mure", "clone", "https://github.com/kitsuyui/mure"]) {
         Ok(matches) => {
             assert_eq!(matches.subcommand_name(), Some("clone"));
+        }
+        Err(e) => {
+            unreachable!("{}", e);
+        }
+    }
+    let cmd = parser();
+    match cmd.get_matches_from_safe(["mure", "path", "mure"]) {
+        Ok(matches) => {
+            assert_eq!(matches.subcommand_name(), Some("path"));
         }
         Err(e) => {
             unreachable!("{}", e);

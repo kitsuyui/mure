@@ -64,6 +64,26 @@ Default search query is `user:{username} is:public fork:false archived:false`
 
 `mure refresh` updates the repository.
 
+### mure path
+
+`mure path` shows the path of the repository for given repository name.
+
+#### Example
+
+```bash
+mure path something # => $HOME/.dev/something
+```
+
+So you can cd directly to the repository by combining with the following shell function.
+
+```shell
+function mcd { local p=$(mure path "$1") && cd "$p" }
+```
+
+```shell
+mcd something  # => Same as `cd $HOME/.dev/something`
+```
+
 ## License
 
 BSD-3-Clause
