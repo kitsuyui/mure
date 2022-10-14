@@ -1,4 +1,5 @@
-use clap::Command;
+use clap::{command, Parser, Subcommand};
+
 mod app;
 mod config;
 mod gh;
@@ -8,26 +9,24 @@ mod mure_error;
 
 fn main() {
     let config = app::initialize::get_config_or_initialize().expect("config error");
-    let cmd = parser();
-    let matches = cmd.get_matches();
-    match matches.subcommand() {
-        Some(("init", matches)) => match matches.subcommand_matches("shell") {
-            Some(_) => {
-                println!("{}", app::path::shell_shims(&config));
+    let cli = Cli::parse();
+    use Commands::*;
+    match cli.command {
+        Init { shell: true } => {
+            println!("{}", app::path::shell_shims(&config));
+        }
+        Init { shell: false } => match app::initialize::init() {
+            Ok(_) => {
+                println!("Initialized config file");
             }
-            None => match app::initialize::init() {
-                Ok(_) => {
-                    println!("Initialized config file");
-                }
-                Err(e) => {
-                    println!("{}", e);
-                }
-            },
+            Err(e) => {
+                println!("{}", e);
+            }
         },
-        Some(("refresh", matches)) => {
+        Refresh { repository } => {
             let current_dir = std::env::current_dir().unwrap();
-            let repo_path = match matches.get_one::<String>("repository") {
-                Some(repo) => repo.to_string(),
+            let repo_path = match repository {
+                Some(repo) => repo,
                 None => current_dir.to_str().unwrap().to_string(),
             };
             match app::refresh::refresh(&repo_path) {
@@ -35,128 +34,122 @@ fn main() {
                 Err(e) => println!("{}", e),
             }
         }
-        Some(("issues", matches)) => {
-            let query = match matches.get_one::<String>("query") {
-                Some(query) => query.to_string(),
-                None => format!(
-                    "user:{} is:public fork:false archived:false",
-                    &config.github.username
-                ),
-            };
+        Issues { query } => {
+            let default_query = "user:{} is:public fork:false archived:false";
+            let query = query.unwrap_or_else(|| default_query.to_string());
             match app::issues::show_issues(&query) {
                 Ok(_) => (),
                 Err(e) => println!("{}", e),
             }
         }
-        Some(("clone", matches)) => {
-            let repo_url = matches.get_one::<String>("url").unwrap();
-            match app::clone::clone(&config, repo_url) {
-                Ok(_) => (),
-                Err(e) => println!("{}", e),
-            }
-        }
-        Some(("path", matches)) => {
-            let name = matches.get_one::<String>("name").unwrap();
-            match app::path::path(&config, name) {
-                Ok(_) => (),
-                Err(e) => println!("{}", e),
-            }
-        }
-        _ => unreachable!("unreachable!"),
-    };
+        Clone { url } => match app::clone::clone(&config, &url) {
+            Ok(_) => (),
+            Err(e) => println!("{}", e),
+        },
+        Path { name } => match app::path::path(&config, &name) {
+            Ok(_) => (),
+            Err(e) => println!("{}", e),
+        },
+    }
 }
 
-/// Parser
-fn parser() -> Command {
-    let subcommand_init = Command::new("init").about("create ~/.mure.toml").arg(
-        clap::Arg::new("shell")
-            .short('s')
-            .long("shell")
-            .help("Output shims for mure. To be evaluated in shell."),
-    );
+#[derive(Parser, Debug, Clone)]
+#[command(author, version, about, long_about = None)]
+#[command(next_line_help = true)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
 
-    let subcommand_refresh = Command::new("refresh").about("refresh repository").arg(
-        clap::Arg::new("repository")
-            .short('r')
-            .long("repository")
-            .help("repository to refresh. if not specified, current directory is used"),
-    );
-
-    let subcommand_issues = Command::new("issues").about("show issues").arg(
-        clap::Arg::new("query")
-            .short('q')
-            .long("query")
-            .help("query to search issues"),
-    );
-
-    let subcommand_clone = Command::new("clone").about("clone repository").arg(
-        clap::Arg::new("url")
-            .help("repository url")
-            .required(true)
-            .index(1),
-    );
-
-    let subcommand_path = Command::new("path")
-        .about("show repository path for name")
-        .arg(
-            clap::Arg::new("name")
-                .help("repository name")
-                .required(true)
-                .index(1),
-        );
-
-    clap::Command::new("mure")
-        .bin_name("mure")
-        .subcommand_required(true)
-        .subcommand(subcommand_init)
-        .subcommand(subcommand_refresh)
-        .subcommand(subcommand_issues)
-        .subcommand(subcommand_clone)
-        .subcommand(subcommand_path)
+#[derive(Subcommand, Debug, Clone)]
+enum Commands {
+    #[command(about = "create ~/.mure.toml")]
+    Init {
+        #[arg(short, long, help = "Output shims for mure. To be evaluated in shell.")]
+        shell: bool,
+    },
+    #[command(about = "refresh repository")]
+    Refresh {
+        #[arg(
+            index = 1,
+            help = "repository to refresh. if not specified, current directory is used"
+        )]
+        repository: Option<String>,
+    },
+    #[command(about = "show issues")]
+    Issues {
+        #[arg(short, long, help = "query to search issues")]
+        query: Option<String>,
+    },
+    #[command(about = "clone repository")]
+    Clone {
+        #[arg(index = 1, help = "repository url")]
+        url: String,
+    },
+    #[command(about = "show repository path for name")]
+    Path {
+        #[arg(short, long, help = "repository name")]
+        name: String,
+    },
 }
 
 #[test]
 fn test_parser() {
-    let cmd = parser();
-    cmd.debug_assert();
+    match Cli::parse_from(vec!["mure", "init"]) {
+        Cli {
+            command: Commands::Init { shell: false },
+        } => (),
+        _ => panic!("failed to parse"),
+    }
 
-    let cmd = parser();
-    assert_eq!(
-        cmd.get_matches_from(&["mure", "init"])
-            .subcommand_name()
-            .unwrap(),
-        "init"
-    );
+    match Cli::parse_from(vec!["mure", "init", "--shell"]) {
+        Cli {
+            command: Commands::Init { shell: true },
+        } => (),
+        _ => panic!("failed to parse"),
+    }
 
-    let cmd = parser();
-    assert_eq!(
-        cmd.get_matches_from(&["mure", "refresh"])
-            .subcommand_name()
-            .unwrap(),
-        "refresh"
-    );
+    match Cli::parse_from(vec!["mure", "refresh"]) {
+        Cli {
+            command: Commands::Refresh { repository: None },
+        } => (),
+        _ => panic!("failed to parse"),
+    }
 
-    let cmd = parser();
-    assert_eq!(
-        cmd.get_matches_from(&["mure", "issues"])
-            .subcommand_name()
-            .unwrap(),
-        "issues"
-    );
+    match Cli::parse_from(vec!["mure", "refresh", "react"]) {
+        Cli {
+            command: Commands::Refresh {
+                repository: Some(repo),
+            },
+        } => assert_eq!(repo, "react"),
+        _ => panic!("failed to parse"),
+    }
 
-    let cmd = parser();
-    assert_eq!(
-        cmd.get_matches_from(&["mure", "clone", "https://github.com/kitsuyui/mure"])
-            .subcommand_name()
-            .unwrap(),
-        "clone"
-    );
+    match Cli::parse_from(vec!["mure", "issues"]) {
+        Cli {
+            command: Commands::Issues { query: None },
+        } => (),
+        _ => panic!("failed to parse"),
+    }
 
-    let cmd = parser();
-    assert_eq!(
-        cmd.get_matches_from(&["mure", "path", "mure"])
-            .subcommand_name()
-            .unwrap(),
-        "path"
-    );
+    match Cli::parse_from(vec!["mure", "issues", "--query", "is:public"]) {
+        Cli {
+            command: Commands::Issues { query: Some(query) },
+        } => assert_eq!(query, "is:public"),
+        _ => panic!("failed to parse"),
+    }
+
+    match Cli::parse_from(vec!["mure", "clone", "https://github.com/kitsuyui/mure"]) {
+        Cli {
+            command: Commands::Clone { url },
+        } => assert_eq!(url, "https://github.com/kitsuyui/mure"),
+        _ => panic!("failed to parse"),
+    }
+
+    match Cli::parse_from(vec!["mure", "path", "--name", "mure"]) {
+        Cli {
+            command: Commands::Path { name },
+        } => assert_eq!(name, "mure"),
+        _ => panic!("failed to parse"),
+    }
 }
