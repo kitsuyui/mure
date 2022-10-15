@@ -35,7 +35,10 @@ fn main() {
             }
         }
         Issues { query } => {
-            let default_query = "user:{} is:public fork:false archived:false";
+            let default_query = format!(
+                "user:{} is:public fork:false archived:false",
+                &config.github.username
+            );
             let query = query.unwrap_or_else(|| default_query.to_string());
             match app::issues::show_issues(&query) {
                 Ok(_) => (),
