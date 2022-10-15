@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use git2::Repository;
 
 use crate::gh::get_default_branch;
@@ -13,11 +15,16 @@ pub enum RefreshStatus {
 }
 
 pub enum Reason {
+    NotGitRepository,
     NoRemote,
     EmptyRepository,
 }
 
 pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
+    if !PathBuf::from(repo_path).join(".git").exists() {
+        return Ok(RefreshStatus::DoNothing(Reason::NotGitRepository));
+    }
+
     let repo = Repository::open(repo_path)?;
 
     if repo.is_empty()? {
@@ -77,6 +84,22 @@ mod tests {
         let result = refresh(path).unwrap();
         match result {
             RefreshStatus::DoNothing(Reason::EmptyRepository) => {}
+            _ => unreachable!(),
+        }
+    }
+
+    #[test]
+    fn test_not_git_repository() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+        let path = temp_dir
+            .as_path()
+            .as_os_str()
+            .to_str()
+            .expect("failed to get path");
+
+        let result = refresh(path).unwrap();
+        match result {
+            RefreshStatus::DoNothing(Reason::NotGitRepository) => {}
             _ => unreachable!(),
         }
     }
