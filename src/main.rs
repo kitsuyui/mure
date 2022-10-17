@@ -91,7 +91,7 @@ enum Commands {
     },
     #[command(about = "show repository path for name")]
     Path {
-        #[arg(short, long, help = "repository name")]
+        #[arg(index = 1, help = "repository name")]
         name: String,
     },
 }
@@ -149,7 +149,7 @@ fn test_parser() {
         _ => panic!("failed to parse"),
     }
 
-    match Cli::parse_from(vec!["mure", "path", "--name", "mure"]) {
+    match Cli::parse_from(vec!["mure", "path", "mure"]) {
         Cli {
             command: Commands::Path { name },
         } => assert_eq!(name, "mure"),
