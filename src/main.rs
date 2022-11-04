@@ -30,7 +30,11 @@ fn main() {
                 None => current_dir.to_str().unwrap().to_string(),
             };
             match app::refresh::refresh(&repo_path) {
-                Ok(_) => (),
+                Ok(r) => {
+                    if let app::refresh::RefreshStatus::Update { message, .. } = r {
+                        println!("{}", message);
+                    }
+                }
                 Err(e) => println!("{}", e),
             }
         }

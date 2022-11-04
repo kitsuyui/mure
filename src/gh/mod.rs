@@ -3,7 +3,7 @@ use std::process::Command;
 
 pub fn get_default_branch() -> Result<String, Error> {
     let result = Command::new("gh")
-        .args(&[
+        .args([
             "repo",
             "view",
             "--json",

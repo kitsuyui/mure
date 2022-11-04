@@ -19,7 +19,7 @@ pub fn clone(config: &Config, repo_url: &str) -> Result<(), Error> {
     let result = Command::new("git")
         .current_dir(tobe_clone.parent().unwrap())
         .arg("clone")
-        .arg(&repo_url)
+        .arg(repo_url)
         .output()?;
 
     if !result.status.success() {

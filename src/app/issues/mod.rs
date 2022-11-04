@@ -45,7 +45,7 @@ pub fn show_issues(query: &str) -> Result<(), Error> {
                             "{}\t{}\t{}\t{}",
                             result.number_of_issues,
                             result.number_of_pull_requests,
-                            result.default_branch_name.unwrap_or_else(|| "".to_string()),
+                            result.default_branch_name.unwrap_or_default(),
                             result.url
                         );
                     }
