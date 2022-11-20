@@ -1,5 +1,7 @@
 # mure
 
+[![codecov](https://codecov.io/gh/kitsuyui/mure/branch/main/graph/badge.svg?token=PPS40CYIYA)](https://codecov.io/gh/kitsuyui/mure)
+
 A command line tool for creating and managing multiple repositories.
 
 ## Installation
