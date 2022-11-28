@@ -17,9 +17,12 @@ impl RepoInfo {
     }
     pub fn parse_url(url: &str) -> Option<Self> {
         let patterns = [
-            Regex::new(GITHUB_HTTPS_URL).unwrap(),
-            Regex::new(GITHUB_GIT_URL).unwrap(),
-            Regex::new(GITHUB_SSH_URL).unwrap(),
+            #[allow(clippy::expect_used)]
+            Regex::new(GITHUB_HTTPS_URL).expect("failed to compile regex"),
+            #[allow(clippy::expect_used)]
+            Regex::new(GITHUB_GIT_URL).expect("failed to compile regex"),
+            #[allow(clippy::expect_used)]
+            Regex::new(GITHUB_SSH_URL).expect("failed to compile regex"),
         ];
         for pattern in patterns.iter() {
             if let Some(repo_info) = RepoInfo::parse_with_regex(pattern, url) {

@@ -7,8 +7,8 @@ mod git;
 mod github;
 mod mure_error;
 
-fn main() {
-    let config = app::initialize::get_config_or_initialize().expect("config error");
+fn main() -> Result<(), mure_error::Error> {
+    let config = app::initialize::get_config_or_initialize()?;
     let cli = Cli::parse();
     use Commands::*;
     match cli.command {
@@ -24,10 +24,13 @@ fn main() {
             }
         },
         Refresh { repository } => {
-            let current_dir = std::env::current_dir().unwrap();
+            let current_dir = std::env::current_dir()?;
+            let Some(current_dir) = current_dir.to_str() else {
+                return Err(mure_error::Error::from_str("failed to get current dir"));
+            };
             let repo_path = match repository {
                 Some(repo) => repo,
-                None => current_dir.to_str().unwrap().to_string(),
+                None => current_dir.to_string(),
             };
             match app::refresh::refresh(&repo_path) {
                 Ok(r) => {
@@ -58,6 +61,7 @@ fn main() {
             Err(e) => println!("{}", e),
         },
     }
+    Ok(())
 }
 
 #[derive(Parser, Debug, Clone)]

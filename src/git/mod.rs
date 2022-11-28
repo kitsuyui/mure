@@ -25,7 +25,9 @@ impl RepositorySupport for Repository {
             "refs/heads/**/*",
             "--merged",
         ])?;
-        Ok(split_lines(String::from_utf8(result.stdout).unwrap()))
+        let message =
+            String::from_utf8(result.stdout).map_err(|e| Error::from_str(&e.to_string()))?;
+        Ok(split_lines(message))
     }
     fn is_clean(&self) -> Result<bool, Error> {
         Ok(!self.has_unsaved()?)
@@ -54,8 +56,11 @@ impl RepositorySupport for Repository {
             return Err(Error::from_str("repository is empty"));
         }
         let head = self.head()?;
-        let head_name = head.shorthand().unwrap();
-        match self.find_branch(head_name, BranchType::Local)?.name()? {
+
+        let Some(name) = head.shorthand() else {
+            return Err(Error::from_str("head is not a branch"));
+        };
+        match self.find_branch(name, BranchType::Local)?.name()? {
             Some(branch_name) => Ok(branch_name.to_owned()),
             None => unreachable!("unreachable!"),
         }
@@ -63,9 +68,11 @@ impl RepositorySupport for Repository {
     fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<Output, Error> {
         let output = self.command(&["pull", "--ff-only", remote, branch])?;
         if !output.status.success() {
+            let message =
+                String::from_utf8(output.stderr).map_err(|e| Error::from_str(&e.to_string()))?;
             return Err(Error::from_str(&format!(
                 "failed to pull fast forward: {}",
-                String::from_utf8(output.stderr).unwrap()
+                message
             )));
         }
         Ok(output)
@@ -73,10 +80,11 @@ impl RepositorySupport for Repository {
     fn switch(&self, branch: &str) -> Result<Output, Error> {
         let output = self.command(&["switch", branch])?;
         if !output.status.success() {
+            let message =
+                String::from_utf8(output.stderr).map_err(|e| Error::from_str(&e.to_string()))?;
             return Err(Error::from_str(&format!(
                 "failed to switch to branch {}: {}",
-                branch,
-                String::from_utf8(output.stderr).unwrap()
+                branch, message
             )));
         }
         Ok(output)
@@ -84,17 +92,21 @@ impl RepositorySupport for Repository {
     fn delete_branch(&self, branch: &str) -> Result<Output, Error> {
         let output = self.command(&["branch", "-d", branch])?;
         if !output.status.success() {
+            let message =
+                String::from_utf8(output.stderr).map_err(|e| Error::from_str(&e.to_string()))?;
             return Err(Error::from_str(&format!(
                 "failed to delete branch {}: {}",
-                branch,
-                String::from_utf8(output.stderr).unwrap()
+                branch, message
             )));
         }
         Ok(output)
     }
     fn command(&self, args: &[&str]) -> Result<Output, Error> {
+        let Some(workdir) = self.workdir() else {
+            return Err(Error::from_str("parent dir exist"));
+        };
         Ok(Command::new("git")
-            .current_dir(self.workdir().expect("parent dir exists"))
+            .current_dir(workdir)
             .args(args)
             .output()?)
     }
@@ -125,6 +137,7 @@ mod tests {
         _temp_dir: Temp,
     }
 
+    #[allow(clippy::expect_used, clippy::unwrap_used)]
     impl Fixture {
         /// Create temporary repository.
         /// When the test is finished, the temporary directory is removed.
@@ -160,7 +173,10 @@ mod tests {
         }
 
         fn create_file(&self, filename: &str, content: &str) -> Result<(), Error> {
-            let filepath = self.repo.workdir().unwrap().join(filename);
+            let Some(workdir) = self.repo.workdir() else {
+                return Err(Error::from_str("workdir not found"));
+            };
+            let filepath = workdir.join(filename);
             let mut file = std::fs::File::create(filepath)?;
             file.write_all(content.as_bytes())?;
             file.sync_all()?;

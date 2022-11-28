@@ -34,7 +34,12 @@ pub fn search_all_repositories(
                 let edges = response.repos.edges;
                 if let Some(edge) = edges {
                     for edge_ in edge {
-                        let node = edge_.expect("edge is None").node.expect("node is None");
+                        let Some(edge) = edge_ else {
+                            continue;
+                        };
+                        let Some(node) = edge.node else {
+                            continue;
+                        };
                         if let search_repository_query::SearchRepositoryQueryReposEdgesNode::Repository(repo) =
                             node
                         {

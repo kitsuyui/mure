@@ -14,10 +14,16 @@ pub fn get_default_branch() -> Result<String, Error> {
         .output()?;
 
     if !result.status.success() {
-        let error = String::from_utf8(result.stderr).unwrap();
-        return Err(Error::from_str(&error));
+        let Ok(message) = String::from_utf8(result.stderr) else {
+            return Err(Error::from_str("failed to get default branch"));
+        };
+        return Err(Error::from_str(&message));
     }
-    Ok(String::from_utf8(result.stdout.to_vec()).unwrap())
+
+    let Ok(message) = String::from_utf8(result.stdout) else {
+        return Err(Error::from_str("failed to get default branch"));
+    };
+    Ok(message)
 }
 
 #[cfg(test)]
