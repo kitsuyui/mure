@@ -1,5 +1,0 @@
-[alias]
-format = "fmt --all"
-format-check = "fmt --all -- --check"
-lint = "clippy --all-targets --all-features -- -D warnings"
-coverage = "llvm-cov --lcov --output-path target/lcov.info"

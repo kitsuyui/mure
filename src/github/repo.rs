@@ -1,3 +1,4 @@
+use once_cell::sync::Lazy;
 use regex::Regex;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -17,9 +18,9 @@ impl RepoInfo {
     }
     pub fn parse_url(url: &str) -> Option<Self> {
         let patterns = [
-            Regex::new(GITHUB_HTTPS_URL).unwrap(),
-            Regex::new(GITHUB_GIT_URL).unwrap(),
-            Regex::new(GITHUB_SSH_URL).unwrap(),
+            GITHUB_HTTPS_URL.clone(),
+            GITHUB_GIT_URL.clone(),
+            GITHUB_SSH_URL.clone(),
         ];
         for pattern in patterns.iter() {
             if let Some(repo_info) = RepoInfo::parse_with_regex(pattern, url) {
@@ -39,12 +40,24 @@ impl RepoInfo {
     }
 }
 
-const GITHUB_HTTPS_URL: &str =
-    "^https?://(?P<domain>github\\.com)/(?P<owner>.*?)/(?P<repo>.*?)(/?|(?:\\.git))$";
-const GITHUB_GIT_URL: &str =
-    "^git@(?P<domain>github\\.com):(?P<owner>.*?)/(?P<repo>.*?)(?:\\.git)?$";
-const GITHUB_SSH_URL: &str =
-    "^ssh://git@(?P<domain>github\\.com)(?::22)?/(?P<owner>.*?)/(?P<repo>.*?)(?:\\.git)$";
+static GITHUB_HTTPS_URL: Lazy<Regex> = Lazy::new(|| {
+    #[allow(clippy::unwrap_used)]
+    Regex::new("^https?://(?P<domain>github\\.com)/(?P<owner>.*?)/(?P<repo>.*?)(/?|(?:\\.git))$")
+        .unwrap()
+});
+
+static GITHUB_GIT_URL: Lazy<Regex> = Lazy::new(|| {
+    #[allow(clippy::unwrap_used)]
+    Regex::new("^git@(?P<domain>github\\.com):(?P<owner>.*?)/(?P<repo>.*?)(?:\\.git)?$").unwrap()
+});
+
+static GITHUB_SSH_URL: Lazy<Regex> = Lazy::new(|| {
+    #[allow(clippy::unwrap_used)]
+    Regex::new(
+        "^ssh://git@(?P<domain>github\\.com)(?::22)?/(?P<owner>.*?)/(?P<repo>.*?)(?:\\.git)$",
+    )
+    .unwrap()
+});
 
 #[cfg(test)]
 mod tests {
