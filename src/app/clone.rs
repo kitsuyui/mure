@@ -64,7 +64,13 @@ mod tests {
 
         match clone(&config, "https://github.com/kitsuyui/mure") {
             Ok(_) => {}
-            Err(err) => panic!("{:?}", err),
+            Err(_) => unreachable!(),
         }
+        let config: Config = toml::from_str(&config_file).unwrap();
+
+        let Err(error) = clone(&config, "") else {
+            unreachable!();
+        };
+        assert_eq!(error.to_string(), "invalid repo url");
     }
 }
