@@ -70,7 +70,18 @@ mod tests {
 
     #[test]
     fn test_shell_shims() {
-        let shims = shell_shims_for_cd_directly("mure", "mcd");
+        let config = Config {
+            core: Core {
+                base_dir: "".to_string(),
+            },
+            github: GitHub {
+                username: "".to_string(),
+            },
+            shell: Some(Shell {
+                cd_shims: Some("mcd".to_string()),
+            }),
+        };
+        let shims = shell_shims(&config);
         assert_eq!(
             shims,
             "function mcd() { local p=$(mure path \"$1\") && cd \"$p\" }\n"
