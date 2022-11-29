@@ -364,19 +364,15 @@ mod tests {
         let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
-        if let Ok(it) = repo.get_current_branch() {
-            panic!("current branch will be empty: {}", it);
-        }
+        let Err(_) = repo.get_current_branch() else {
+            unreachable!();
+        };
 
         fixture.create_empty_commit("initial commit").unwrap();
-
-        match repo.get_current_branch() {
-            Ok(it) => match it.as_str() {
-                "master" | "main" => {}
-                _ => panic!("something went wrong! {}", it),
-            },
-            Err(it) => panic!("something went wrong!! {}", it),
-        }
+        let Ok(branch_name) = repo.get_current_branch() else {
+            unreachable!();
+        };
+        assert!(branch_name == "main" || branch_name == "master");
     }
 
     #[test]
