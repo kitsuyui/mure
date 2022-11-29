@@ -44,8 +44,8 @@ impl RepositorySupport for Repository {
             .output()?;
         if !result.status.success() {
             let Ok(error) = String::from_utf8(result.stderr) else {
-            return Err(Error::from_str("failed to clone"));
-        };
+                return Err(Error::from_str("failed to clone"));
+            };
             return Err(Error::from_str(&error));
         }
         Ok(())
