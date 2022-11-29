@@ -78,10 +78,11 @@ impl RepositorySupport for Repository {
         let Some(name) = head.shorthand() else {
             return Err(Error::from_str("head is not a branch"));
         };
-        match self.find_branch(name, BranchType::Local)?.name()? {
-            Some(branch_name) => Ok(branch_name.to_owned()),
-            None => unreachable!("unreachable!"),
-        }
+        let branch = self.find_branch(name, BranchType::Local)?;
+        let Some(branch_name) = branch.name()? else {
+            return Err(Error::from_str("branch name is not found"));
+        };
+        Ok(branch_name.to_string())
     }
     fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<Output, Error> {
         let output = self.command(&["pull", "--ff-only", remote, branch])?;
