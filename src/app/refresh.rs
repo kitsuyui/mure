@@ -91,10 +91,9 @@ mod tests {
         Repository::init(path).unwrap();
 
         let result = refresh(path).unwrap();
-        match result {
-            RefreshStatus::DoNothing(Reason::EmptyRepository) => {}
-            _ => unreachable!(),
-        }
+        let RefreshStatus::DoNothing(Reason::EmptyRepository) = result else {
+            unreachable!();
+        };
     }
 
     #[test]
