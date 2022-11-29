@@ -1,4 +1,7 @@
-use std::process::{Command, Output};
+use std::{
+    path::Path,
+    process::{Command, Output},
+};
 
 use git2::{BranchType, Repository};
 
@@ -7,6 +10,7 @@ use crate::mure_error::Error;
 pub trait RepositorySupport {
     fn merged_branches(&self) -> Result<Vec<String>, Error>;
     fn is_clean(&self) -> Result<bool, Error>;
+    fn clone(url: &str, into: &Path) -> Result<(), Error>;
     fn has_unsaved(&self) -> Result<bool, Error>;
     fn is_remote_exists(&self) -> Result<bool, Error>;
     fn get_current_branch(&self) -> Result<String, Error>;
@@ -31,6 +35,20 @@ impl RepositorySupport for Repository {
     }
     fn is_clean(&self) -> Result<bool, Error> {
         Ok(!self.has_unsaved()?)
+    }
+    fn clone(url: &str, into: &Path) -> Result<(), Error> {
+        let result = Command::new("git")
+            .current_dir(into)
+            .arg("clone")
+            .arg(url)
+            .output()?;
+        if !result.status.success() {
+            let Ok(error) = String::from_utf8(result.stderr) else {
+            return Err(Error::from_str("failed to clone"));
+        };
+            return Err(Error::from_str(&error));
+        }
+        Ok(())
     }
     fn has_unsaved(&self) -> Result<bool, Error> {
         for entry in self.statuses(None)?.iter() {
@@ -413,5 +431,21 @@ mod tests {
             result.err().unwrap().message,
             "failed to delete branch feature: error: branch 'feature' not found.\n"
         );
+    }
+
+    #[test]
+    fn test_clone() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+        let repo_url = "https://github.com/kitsuyui/mure";
+        let result = <git2::Repository as RepositorySupport>::clone(repo_url, temp_dir.as_path());
+        assert!(result.is_ok());
+
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+        let repo_url = "";
+        let result = <git2::Repository as RepositorySupport>::clone(repo_url, temp_dir.as_path());
+        let Err(error) = result else {
+            unreachable!();
+        };
+        assert_eq!(error.message, "fatal: repository '' does not exist\n");
     }
 }
