@@ -18,6 +18,7 @@ pub trait RepositorySupport {
     fn switch(&self, branch: &str) -> Result<Output, Error>;
     fn delete_branch(&self, branch: &str) -> Result<Output, Error>;
     fn command(&self, args: &[&str]) -> Result<Output, Error>;
+    fn git_command_on_dir(args: &[&str], workdir: &Path) -> Result<Output, Error>;
 }
 
 impl RepositorySupport for Repository {
@@ -37,11 +38,7 @@ impl RepositorySupport for Repository {
         Ok(!self.has_unsaved()?)
     }
     fn clone(url: &str, into: &Path) -> Result<(), Error> {
-        let result = Command::new("git")
-            .current_dir(into)
-            .arg("clone")
-            .arg(url)
-            .output()?;
+        let result = Repository::git_command_on_dir(&["clone", url], into)?;
         if !result.status.success() {
             let Ok(error) = String::from_utf8(result.stderr) else {
                 return Err(Error::from_str("failed to clone"));
@@ -120,14 +117,19 @@ impl RepositorySupport for Repository {
         }
         Ok(output)
     }
-    fn command(&self, args: &[&str]) -> Result<Output, Error> {
-        let Some(workdir) = self.workdir() else {
-            return Err(Error::from_str("parent dir exist"));
-        };
+
+    fn git_command_on_dir(args: &[&str], workdir: &Path) -> Result<Output, Error> {
         Ok(Command::new("git")
             .current_dir(workdir)
             .args(args)
             .output()?)
+    }
+
+    fn command(&self, args: &[&str]) -> Result<Output, Error> {
+        let Some(workdir) = self.workdir() else {
+            return Err(Error::from_str("parent dir exist"));
+        };
+        Self::git_command_on_dir(args, workdir)
     }
 }
 
