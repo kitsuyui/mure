@@ -87,6 +87,10 @@ mod tests {
         fixture_origin
             .create_empty_commit("initial commit")
             .unwrap();
+        fixture_origin
+            .repo
+            .command(&["switch", "-c", "main"])
+            .unwrap();
         let result = refresh(origin_path.to_str().unwrap()).unwrap();
         match result {
             RefreshStatus::DoNothing(Reason::NoRemote) => (),
@@ -97,7 +101,7 @@ mod tests {
             .repo
             .remote("origin", origin_path.to_str().unwrap())
             .unwrap();
-
+        fixture.repo.command(&["switch", "-c", "main"]).unwrap();
         let path = fixture.repo.path().parent().unwrap();
         let result = refresh(path.to_str().unwrap()).unwrap();
         match result {
