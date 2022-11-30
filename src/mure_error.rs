@@ -5,6 +5,8 @@ use std::io;
 #[derive(Debug, Clone)]
 pub enum Error {
     Message(String),
+    GitCommandError(String),
+    GHCommandError(String),
 }
 
 impl Error {
@@ -14,6 +16,8 @@ impl Error {
     pub fn message(&self) -> String {
         match self {
             Error::Message(message) => message.to_string(),
+            Error::GitCommandError(message) => message.to_string(),
+            Error::GHCommandError(message) => message.to_string(),
         }
     }
 }

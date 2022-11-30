@@ -114,10 +114,10 @@ impl RepositorySupport for Repository {
     }
 
     fn git_command_on_dir(args: &[&str], workdir: &Path) -> Result<Output, Error> {
-        Ok(Command::new("git")
-            .current_dir(workdir)
-            .args(args)
-            .output()?)
+        match Command::new("git").current_dir(workdir).args(args).output() {
+            Ok(output) => Ok(output),
+            Err(e) => Err(Error::GitCommandError(e.to_string())),
+        }
     }
 
     fn command(&self, args: &[&str]) -> Result<Output, Error> {
