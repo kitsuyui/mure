@@ -3,21 +3,24 @@ use std::fmt;
 use std::io;
 
 #[derive(Debug, Clone)]
-pub struct Error {
-    pub message: String,
+pub enum Error {
+    Message(String),
 }
 
 impl Error {
     pub fn from_str(message: &str) -> Error {
-        Error {
-            message: String::from(message),
+        Error::Message(message.to_string())
+    }
+    pub fn message(&self) -> String {
+        match self {
+            Error::Message(message) => message.to_string(),
         }
     }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.message)
+        write!(f, "{}", self.message())
     }
 }
 

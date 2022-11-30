@@ -369,7 +369,7 @@ mod tests {
         let result = repo.delete_branch("feature");
         assert!(result.is_err());
         assert_eq!(
-            result.err().unwrap().message,
+            result.err().unwrap().message(),
             "failed to delete branch feature: error: branch 'feature' not found.\n"
         );
     }
@@ -387,6 +387,6 @@ mod tests {
         let Err(error) = result else {
             unreachable!();
         };
-        assert_eq!(error.message, "fatal: repository '' does not exist\n");
+        assert_eq!(error.message(), "fatal: repository '' does not exist\n");
     }
 }
