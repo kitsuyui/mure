@@ -1,6 +1,7 @@
 use std::{
     path::Path,
     process::{Command, Output},
+    string::FromUtf8Error,
 };
 
 use git2::{BranchType, Repository};
@@ -30,8 +31,7 @@ impl RepositorySupport for Repository {
             "refs/heads/**/*",
             "--merged",
         ])?;
-        let message =
-            String::from_utf8(result.stdout).map_err(|e| Error::from_str(&e.to_string()))?;
+        let message = String::from_utf8(result.stdout)?;
         Ok(split_lines(message))
     }
     fn is_clean(&self) -> Result<bool, Error> {
@@ -40,9 +40,7 @@ impl RepositorySupport for Repository {
     fn clone(url: &str, into: &Path) -> Result<(), Error> {
         let result = Repository::git_command_on_dir(&["clone", url], into)?;
         if !result.status.success() {
-            let Ok(error) = String::from_utf8(result.stderr) else {
-                return Err(Error::from_str("failed to clone"));
-            };
+            let error = String::from_utf8(result.stderr)?;
             return Err(Error::from_str(&error));
         }
         Ok(())
@@ -84,8 +82,7 @@ impl RepositorySupport for Repository {
     fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<Output, Error> {
         let output = self.command(&["pull", "--ff-only", remote, branch])?;
         if !output.status.success() {
-            let message =
-                String::from_utf8(output.stderr).map_err(|e| Error::from_str(&e.to_string()))?;
+            let message = String::from_utf8(output.stderr)?;
             return Err(Error::from_str(&format!(
                 "failed to pull fast forward: {}",
                 message
@@ -96,8 +93,7 @@ impl RepositorySupport for Repository {
     fn switch(&self, branch: &str) -> Result<Output, Error> {
         let output = self.command(&["switch", branch])?;
         if !output.status.success() {
-            let message =
-                String::from_utf8(output.stderr).map_err(|e| Error::from_str(&e.to_string()))?;
+            let message = String::from_utf8(output.stderr)?;
             return Err(Error::from_str(&format!(
                 "failed to switch to branch {}: {}",
                 branch, message
@@ -108,8 +104,7 @@ impl RepositorySupport for Repository {
     fn delete_branch(&self, branch: &str) -> Result<Output, Error> {
         let output = self.command(&["branch", "-d", branch])?;
         if !output.status.success() {
-            let message =
-                String::from_utf8(output.stderr).map_err(|e| Error::from_str(&e.to_string()))?;
+            let message = String::from_utf8(output.stderr)?;
             return Err(Error::from_str(&format!(
                 "failed to delete branch {}: {}",
                 branch, message
@@ -135,6 +130,12 @@ impl RepositorySupport for Repository {
 
 impl From<git2::Error> for Error {
     fn from(e: git2::Error) -> Error {
+        Error::from_str(&e.to_string())
+    }
+}
+
+impl From<FromUtf8Error> for Error {
+    fn from(e: FromUtf8Error) -> Error {
         Error::from_str(&e.to_string())
     }
 }

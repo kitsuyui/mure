@@ -49,8 +49,7 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
         if result.status.success() {
             messages.push(format!("Switched to {}", default_branch));
         } else {
-            let message =
-                String::from_utf8(result.stdout).map_err(|e| Error::from_str(&e.to_string()))?;
+            let message = String::from_utf8(result.stdout)?;
             messages.push(message);
         }
     }
