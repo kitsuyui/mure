@@ -6,6 +6,7 @@ use crate::gh::get_default_branch;
 use crate::git::RepositorySupport;
 use crate::mure_error::Error;
 
+#[derive(Debug)]
 pub enum RefreshStatus {
     DoNothing(Reason),
     Update {
@@ -14,10 +15,10 @@ pub enum RefreshStatus {
     },
 }
 
+#[derive(Debug)]
 pub enum Reason {
     NotGitRepository,
     NoRemote,
-    EmptyRepository,
 }
 
 pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
@@ -27,10 +28,6 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
     }
 
     let repo = Repository::open(repo_path)?;
-
-    if repo.is_empty()? {
-        return Ok(RefreshStatus::DoNothing(Reason::EmptyRepository));
-    }
     if !repo.is_remote_exists()? {
         return Ok(RefreshStatus::DoNothing(Reason::NoRemote));
     }
@@ -48,14 +45,8 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
     // switch to default branch if current branch is clean
     if repo.is_clean()? {
         // git switch $default_branch
-        let result = repo.switch(&default_branch)?;
-        if result.status.success() {
-            messages.push(format!("Switched to {}", default_branch));
-        } else {
-            let message =
-                String::from_utf8(result.stdout).map_err(|e| Error::from_str(&e.to_string()))?;
-            messages.push(message);
-        }
+        repo.switch(&default_branch)?;
+        messages.push(format!("Switched to {}", default_branch));
     }
 
     let merged_branches = repo.merged_branches()?;
@@ -78,23 +69,45 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_fixture::Fixture;
     use mktemp::Temp;
 
     #[test]
     fn test_refresh() {
-        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
-        let path = temp_dir
-            .as_path()
-            .as_os_str()
-            .to_str()
-            .expect("failed to get path");
-        Repository::init(path).unwrap();
+        let fixture = Fixture::create().unwrap();
+        let fixture_origin = Fixture::create().unwrap();
 
-        let result = refresh(path).unwrap();
+        let origin_path = fixture_origin.repo.path().parent().unwrap();
+        fixture_origin
+            .create_empty_commit("initial commit")
+            .unwrap();
+        fixture_origin
+            .repo
+            .command(&["switch", "-c", "main"])
+            .unwrap();
+        let result = refresh(origin_path.to_str().unwrap()).unwrap();
         match result {
-            RefreshStatus::DoNothing(Reason::EmptyRepository) => {}
+            RefreshStatus::DoNothing(Reason::NoRemote) => (),
             _ => unreachable!(),
         }
+
+        fixture
+            .repo
+            .remote("origin", origin_path.to_str().unwrap())
+            .unwrap();
+        fixture.repo.command(&["switch", "-c", "main"]).unwrap();
+        let path = fixture.repo.path().parent().unwrap();
+        let result = refresh(path.to_str().unwrap()).unwrap();
+        match result {
+            RefreshStatus::Update {
+                switch_to_default, ..
+            } => {
+                assert!(!switch_to_default);
+            }
+            _ => unreachable!(),
+        }
+        drop(fixture_origin);
+        drop(fixture);
     }
 
     #[test]

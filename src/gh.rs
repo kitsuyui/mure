@@ -2,7 +2,7 @@ use crate::mure_error::Error;
 use std::process::Command;
 
 pub fn get_default_branch() -> Result<String, Error> {
-    let result = Command::new("gh")
+    let result = match Command::new("gh")
         .args([
             "repo",
             "view",
@@ -11,7 +11,11 @@ pub fn get_default_branch() -> Result<String, Error> {
             "-t",
             "{{.defaultBranchRef.name}}",
         ])
-        .output()?;
+        .output()
+    {
+        Ok(output) => output,
+        Err(e) => return Err(Error::GHCommandError(e.to_string())),
+    };
 
     if !result.status.success() {
         let Ok(message) = String::from_utf8(result.stderr) else {

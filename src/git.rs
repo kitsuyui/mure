@@ -1,4 +1,8 @@
-use std::process::{Command, Output};
+use std::{
+    path::Path,
+    process::{Command, Output},
+    string::FromUtf8Error,
+};
 
 use git2::{BranchType, Repository};
 
@@ -7,13 +11,15 @@ use crate::mure_error::Error;
 pub trait RepositorySupport {
     fn merged_branches(&self) -> Result<Vec<String>, Error>;
     fn is_clean(&self) -> Result<bool, Error>;
+    fn clone(url: &str, into: &Path) -> Result<(), Error>;
     fn has_unsaved(&self) -> Result<bool, Error>;
     fn is_remote_exists(&self) -> Result<bool, Error>;
     fn get_current_branch(&self) -> Result<String, Error>;
-    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<Output, Error>;
-    fn switch(&self, branch: &str) -> Result<Output, Error>;
-    fn delete_branch(&self, branch: &str) -> Result<Output, Error>;
+    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<(), Error>;
+    fn switch(&self, branch: &str) -> Result<(), Error>;
+    fn delete_branch(&self, branch: &str) -> Result<(), Error>;
     fn command(&self, args: &[&str]) -> Result<Output, Error>;
+    fn git_command_on_dir(args: &[&str], workdir: &Path) -> Result<Output, Error>;
 }
 
 impl RepositorySupport for Repository {
@@ -25,12 +31,19 @@ impl RepositorySupport for Repository {
             "refs/heads/**/*",
             "--merged",
         ])?;
-        let message =
-            String::from_utf8(result.stdout).map_err(|e| Error::from_str(&e.to_string()))?;
+        let message = String::from_utf8(result.stdout)?;
         Ok(split_lines(message))
     }
     fn is_clean(&self) -> Result<bool, Error> {
         Ok(!self.has_unsaved()?)
+    }
+    fn clone(url: &str, into: &Path) -> Result<(), Error> {
+        let result = Repository::git_command_on_dir(&["clone", url], into)?;
+        if !result.status.success() {
+            let error = String::from_utf8(result.stderr)?;
+            return Err(Error::from_str(&error));
+        }
+        Ok(())
     }
     fn has_unsaved(&self) -> Result<bool, Error> {
         for entry in self.statuses(None)?.iter() {
@@ -60,60 +73,69 @@ impl RepositorySupport for Repository {
         let Some(name) = head.shorthand() else {
             return Err(Error::from_str("head is not a branch"));
         };
-        match self.find_branch(name, BranchType::Local)?.name()? {
-            Some(branch_name) => Ok(branch_name.to_owned()),
-            None => unreachable!("unreachable!"),
-        }
+        let branch = self.find_branch(name, BranchType::Local)?;
+        let Some(branch_name) = branch.name()? else {
+            return Err(Error::from_str("branch name is not found"));
+        };
+        Ok(branch_name.to_string())
     }
-    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<Output, Error> {
+    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<(), Error> {
         let output = self.command(&["pull", "--ff-only", remote, branch])?;
         if !output.status.success() {
-            let message =
-                String::from_utf8(output.stderr).map_err(|e| Error::from_str(&e.to_string()))?;
+            let message = String::from_utf8(output.stderr)?;
             return Err(Error::from_str(&format!(
                 "failed to pull fast forward: {}",
                 message
             )));
         }
-        Ok(output)
+        Ok(())
     }
-    fn switch(&self, branch: &str) -> Result<Output, Error> {
+    fn switch(&self, branch: &str) -> Result<(), Error> {
         let output = self.command(&["switch", branch])?;
         if !output.status.success() {
-            let message =
-                String::from_utf8(output.stderr).map_err(|e| Error::from_str(&e.to_string()))?;
+            let message = String::from_utf8(output.stderr)?;
             return Err(Error::from_str(&format!(
                 "failed to switch to branch {}: {}",
                 branch, message
             )));
         }
-        Ok(output)
+        Ok(())
     }
-    fn delete_branch(&self, branch: &str) -> Result<Output, Error> {
+    fn delete_branch(&self, branch: &str) -> Result<(), Error> {
         let output = self.command(&["branch", "-d", branch])?;
         if !output.status.success() {
-            let message =
-                String::from_utf8(output.stderr).map_err(|e| Error::from_str(&e.to_string()))?;
+            let message = String::from_utf8(output.stderr)?;
             return Err(Error::from_str(&format!(
                 "failed to delete branch {}: {}",
                 branch, message
             )));
         }
-        Ok(output)
+        Ok(())
     }
+
+    fn git_command_on_dir(args: &[&str], workdir: &Path) -> Result<Output, Error> {
+        match Command::new("git").current_dir(workdir).args(args).output() {
+            Ok(output) => Ok(output),
+            Err(e) => Err(Error::GitCommandError(e.to_string())),
+        }
+    }
+
     fn command(&self, args: &[&str]) -> Result<Output, Error> {
         let Some(workdir) = self.workdir() else {
             return Err(Error::from_str("parent dir exist"));
         };
-        Ok(Command::new("git")
-            .current_dir(workdir)
-            .args(args)
-            .output()?)
+        Self::git_command_on_dir(args, workdir)
     }
 }
 
 impl From<git2::Error> for Error {
     fn from(e: git2::Error) -> Error {
+        Error::from_str(&e.to_string())
+    }
+}
+
+impl From<FromUtf8Error> for Error {
+    fn from(e: FromUtf8Error) -> Error {
         Error::from_str(&e.to_string())
     }
 }
@@ -129,60 +151,8 @@ fn split_lines(lines: String) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_fixture::Fixture;
     use mktemp::Temp;
-    use std::io::Write;
-
-    struct Fixture {
-        repo: Repository,
-        _temp_dir: Temp,
-    }
-
-    #[allow(clippy::expect_used, clippy::unwrap_used)]
-    impl Fixture {
-        /// Create temporary repository.
-        /// When the test is finished, the temporary directory is removed.
-        fn create() -> Result<Fixture, Error> {
-            let temp_dir = Temp::new_dir().expect("failed to create temp dir");
-            let path = temp_dir
-                .as_path()
-                .as_os_str()
-                .to_str()
-                .expect("failed to get path");
-            let repo = Repository::init(path)?;
-            let me = Fixture {
-                repo,
-                _temp_dir: temp_dir,
-            };
-            me.set_dummy_profile()?;
-            Ok(me)
-        }
-        /// Set dummy profile.
-        fn set_dummy_profile(&self) -> Result<(), Error> {
-            // git config user.name "test"
-            // git config user.email "test@example.com"
-            let repo = &self.repo;
-            repo.config()?.set_str("user.name", "tester")?;
-            repo.config()?.set_str("user.email", "test@example.com")?;
-            Ok(())
-        }
-        /// Create empty commit.
-        fn create_empty_commit(&self, message: &str) -> Result<(), Error> {
-            self.repo
-                .command(&["commit", "--allow-empty", "-m", message])?;
-            Ok(())
-        }
-
-        fn create_file(&self, filename: &str, content: &str) -> Result<(), Error> {
-            let Some(workdir) = self.repo.workdir() else {
-                return Err(Error::from_str("workdir not found"));
-            };
-            let filepath = workdir.join(filename);
-            let mut file = std::fs::File::create(filepath)?;
-            file.write_all(content.as_bytes())?;
-            file.sync_all()?;
-            Ok(())
-        }
-    }
 
     #[test]
     fn test_split_lines() {
@@ -222,14 +192,10 @@ mod tests {
             .expect("failed to merge test branch");
 
         // now test_branch is same as default branch so it should be merged
-        match repo.merged_branches() {
-            Ok(branches) => {
-                assert!(branches.contains(&branch_name.to_string()));
-            }
-            Err(e) => {
-                unreachable!("failed to get merged branches: {}", e);
-            }
-        }
+        let Ok(merged_branches) = repo.merged_branches() else {
+            unreachable!();
+        };
+        assert!(merged_branches.contains(&branch_name.to_string()));
     }
 
     #[test]
@@ -346,19 +312,15 @@ mod tests {
         let fixture = Fixture::create().unwrap();
         let repo = &fixture.repo;
 
-        if let Ok(it) = repo.get_current_branch() {
-            panic!("current branch will be empty: {}", it);
-        }
+        let Err(_) = repo.get_current_branch() else {
+            unreachable!();
+        };
 
         fixture.create_empty_commit("initial commit").unwrap();
-
-        match repo.get_current_branch() {
-            Ok(it) => match it.as_str() {
-                "master" | "main" => {}
-                _ => panic!("something went wrong! {}", it),
-            },
-            Err(it) => panic!("something went wrong!! {}", it),
-        }
+        let Ok(branch_name) = repo.get_current_branch() else {
+            unreachable!();
+        };
+        assert!(branch_name == "main" || branch_name == "master");
     }
 
     #[test]
@@ -410,8 +372,24 @@ mod tests {
         let result = repo.delete_branch("feature");
         assert!(result.is_err());
         assert_eq!(
-            result.err().unwrap().message,
+            result.err().unwrap().message(),
             "failed to delete branch feature: error: branch 'feature' not found.\n"
         );
+    }
+
+    #[test]
+    fn test_clone() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+        let repo_url = "https://github.com/kitsuyui/mure";
+        let result = <git2::Repository as RepositorySupport>::clone(repo_url, temp_dir.as_path());
+        assert!(result.is_ok());
+
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+        let repo_url = "";
+        let result = <git2::Repository as RepositorySupport>::clone(repo_url, temp_dir.as_path());
+        let Err(error) = result else {
+            unreachable!();
+        };
+        assert_eq!(error.message(), "fatal: repository '' does not exist\n");
     }
 }

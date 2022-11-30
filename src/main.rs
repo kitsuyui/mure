@@ -7,6 +7,9 @@ mod git;
 mod github;
 mod mure_error;
 
+#[cfg(test)]
+mod test_fixture;
+
 fn main() -> Result<(), mure_error::Error> {
     let config = app::initialize::get_config_or_initialize()?;
     let cli = Cli::parse();
