@@ -15,9 +15,9 @@ pub trait RepositorySupport {
     fn has_unsaved(&self) -> Result<bool, Error>;
     fn is_remote_exists(&self) -> Result<bool, Error>;
     fn get_current_branch(&self) -> Result<String, Error>;
-    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<Output, Error>;
-    fn switch(&self, branch: &str) -> Result<Output, Error>;
-    fn delete_branch(&self, branch: &str) -> Result<Output, Error>;
+    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<(), Error>;
+    fn switch(&self, branch: &str) -> Result<(), Error>;
+    fn delete_branch(&self, branch: &str) -> Result<(), Error>;
     fn command(&self, args: &[&str]) -> Result<Output, Error>;
     fn git_command_on_dir(args: &[&str], workdir: &Path) -> Result<Output, Error>;
 }
@@ -79,7 +79,7 @@ impl RepositorySupport for Repository {
         };
         Ok(branch_name.to_string())
     }
-    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<Output, Error> {
+    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<(), Error> {
         let output = self.command(&["pull", "--ff-only", remote, branch])?;
         if !output.status.success() {
             let message = String::from_utf8(output.stderr)?;
@@ -88,9 +88,9 @@ impl RepositorySupport for Repository {
                 message
             )));
         }
-        Ok(output)
+        Ok(())
     }
-    fn switch(&self, branch: &str) -> Result<Output, Error> {
+    fn switch(&self, branch: &str) -> Result<(), Error> {
         let output = self.command(&["switch", branch])?;
         if !output.status.success() {
             let message = String::from_utf8(output.stderr)?;
@@ -99,9 +99,9 @@ impl RepositorySupport for Repository {
                 branch, message
             )));
         }
-        Ok(output)
+        Ok(())
     }
-    fn delete_branch(&self, branch: &str) -> Result<Output, Error> {
+    fn delete_branch(&self, branch: &str) -> Result<(), Error> {
         let output = self.command(&["branch", "-d", branch])?;
         if !output.status.success() {
             let message = String::from_utf8(output.stderr)?;
@@ -110,7 +110,7 @@ impl RepositorySupport for Repository {
                 branch, message
             )));
         }
-        Ok(output)
+        Ok(())
     }
 
     fn git_command_on_dir(args: &[&str], workdir: &Path) -> Result<Output, Error> {

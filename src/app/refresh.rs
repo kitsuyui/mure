@@ -45,13 +45,8 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
     // switch to default branch if current branch is clean
     if repo.is_clean()? {
         // git switch $default_branch
-        let result = repo.switch(&default_branch)?;
-        if result.status.success() {
-            messages.push(format!("Switched to {}", default_branch));
-        } else {
-            let message = String::from_utf8(result.stdout)?;
-            messages.push(message);
-        }
+        repo.switch(&default_branch)?;
+        messages.push(format!("Switched to {}", default_branch));
     }
 
     let merged_branches = repo.merged_branches()?;
