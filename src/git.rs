@@ -8,6 +8,14 @@ use git2::{BranchType, Repository};
 
 use crate::mure_error::Error;
 
+pub enum PullFastForwardStatus {
+    AlreadyUpToDate,
+    FastForwarded,
+    FetchOnly,
+    // NonFastForwardAutoMerged,
+    // Conflict
+}
+
 pub trait RepositorySupport {
     fn merged_branches(&self) -> Result<Vec<String>, Error>;
     fn is_clean(&self) -> Result<bool, Error>;
@@ -15,7 +23,11 @@ pub trait RepositorySupport {
     fn has_unsaved(&self) -> Result<bool, Error>;
     fn is_remote_exists(&self) -> Result<bool, Error>;
     fn get_current_branch(&self) -> Result<String, Error>;
-    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<(), Error>;
+    fn pull_fast_forwarded(
+        &self,
+        remote: &str,
+        branch: &str,
+    ) -> Result<PullFastForwardStatus, Error>;
     fn switch(&self, branch: &str) -> Result<(), Error>;
     fn delete_branch(&self, branch: &str) -> Result<(), Error>;
     fn command(&self, args: &[&str]) -> Result<Output, Error>;
@@ -79,7 +91,11 @@ impl RepositorySupport for Repository {
         };
         Ok(branch_name.to_string())
     }
-    fn pull_fast_forwarded(&self, remote: &str, branch: &str) -> Result<(), Error> {
+    fn pull_fast_forwarded(
+        &self,
+        remote: &str,
+        branch: &str,
+    ) -> Result<PullFastForwardStatus, Error> {
         let output = self.command(&["pull", "--ff-only", remote, branch])?;
         if !output.status.success() {
             let message = String::from_utf8(output.stderr)?;
@@ -88,7 +104,14 @@ impl RepositorySupport for Repository {
                 message
             )));
         }
-        Ok(())
+        let message = String::from_utf8(output.stdout)?;
+        if message.contains("Already up to date.") {
+            Ok(PullFastForwardStatus::AlreadyUpToDate)
+        } else if message.contains("Fast-forward") {
+            Ok(PullFastForwardStatus::FastForwarded)
+        } else {
+            Ok(PullFastForwardStatus::FetchOnly)
+        }
     }
     fn switch(&self, branch: &str) -> Result<(), Error> {
         let output = self.command(&["switch", branch])?;
