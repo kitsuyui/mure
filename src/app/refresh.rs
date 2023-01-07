@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use git2::Repository;
 
 use crate::gh::get_default_branch;
-use crate::git::RepositorySupport;
+use crate::git::{PullFastForwardStatus, RepositorySupport};
 use crate::mure_error::Error;
 
 #[derive(Debug)]
@@ -33,20 +33,24 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
     }
 
     let default_branch = get_default_branch()?;
-    // git pull --ff-only origin "$default_branch":"$default_branch"
-
-    // TODO: origin is hardcoded. If you have multiple remotes, you need to specify which one to use.
-    repo.pull_fast_forwarded("origin", &default_branch)?;
-    messages.push(format!(
-        "Pulled from origin/{} into {}",
-        default_branch, default_branch
-    ));
 
     // switch to default branch if current branch is clean
     if repo.is_clean()? {
         // git switch $default_branch
         repo.switch(&default_branch)?;
         messages.push(format!("Switched to {}", default_branch));
+    }
+
+    // TODO: origin is hardcoded. If you have multiple remotes, you need to specify which one to use.
+    let result = repo.pull_fast_forwarded("origin", &default_branch)?;
+    match result {
+        PullFastForwardStatus::AlreadyUpToDate => {
+            messages.push("Already up to date".to_string());
+        }
+        PullFastForwardStatus::FastForwarded => {
+            messages.push("Fast-forwarded".to_string());
+        }
+        _ => (),
     }
 
     let merged_branches = repo.merged_branches()?;
@@ -85,9 +89,9 @@ mod tests {
             .repo
             .command(&["switch", "-c", "main"])
             .unwrap();
-        let result = refresh(origin_path.to_str().unwrap()).unwrap();
+        let result = refresh(origin_path.to_str().unwrap());
         match result {
-            RefreshStatus::DoNothing(Reason::NoRemote) => (),
+            Ok(RefreshStatus::DoNothing(Reason::NoRemote)) => (),
             _ => unreachable!(),
         }
 
@@ -95,13 +99,15 @@ mod tests {
             .repo
             .remote("origin", origin_path.to_str().unwrap())
             .unwrap();
-        fixture.repo.command(&["switch", "-c", "main"]).unwrap();
+        fixture.repo.command(&["fetch", "origin"]).unwrap();
+        fixture.repo.command(&["switch", "main"]).unwrap();
         let path = fixture.repo.path().parent().unwrap();
-        let result = refresh(path.to_str().unwrap()).unwrap();
+
+        let result = refresh(path.to_str().unwrap());
         match result {
-            RefreshStatus::Update {
+            Ok(RefreshStatus::Update {
                 switch_to_default, ..
-            } => {
+            }) => {
                 assert!(!switch_to_default);
             }
             _ => unreachable!(),
