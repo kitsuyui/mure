@@ -42,18 +42,24 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
     }
 
     // TODO: origin is hardcoded. If you have multiple remotes, you need to specify which one to use.
-    let result = repo.pull_fast_forwarded("origin", &default_branch)?;
-    match result {
-        PullFastForwardStatus::AlreadyUpToDate => {
-            messages.push("Already up to date".to_string());
-        }
-        PullFastForwardStatus::FastForwarded => {
-            messages.push("Fast-forwarded".to_string());
-        }
-        _ => (),
+    let result = repo.pull_fast_forwarded("origin", &default_branch);
+    if let Ok(out) = result {
+        match out.interpreted_to {
+            PullFastForwardStatus::AlreadyUpToDate => {
+                // messages.push(out.raw.stderr);
+                // messages.push(out.raw.stdout);
+                messages.push("Already up to date".to_string());
+            }
+            PullFastForwardStatus::FastForwarded => {
+                // messages.push(out.raw.stderr);
+                // messages.push(out.raw.stdout);
+                messages.push("Fast-forwarded".to_string());
+            }
+            _ => (),
+        };
     }
 
-    let merged_branches = repo.merged_branches()?;
+    let merged_branches = repo.merged_branches()?.interpreted_to;
     let delete_branches = merged_branches
         .iter()
         .filter(|&branch| !branch.eq(&default_branch))
