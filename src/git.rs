@@ -1,63 +1,130 @@
+use git2::{BranchType, Repository};
 use std::{
     path::Path,
     process::{Command, Output},
     string::FromUtf8Error,
 };
 
-use git2::{BranchType, Repository};
+use crate::mure_error;
 
-use crate::mure_error::Error;
-
+#[derive(Debug, PartialEq, Eq)]
 pub enum PullFastForwardStatus {
     AlreadyUpToDate,
     FastForwarded,
-    FetchOnly,
-    // NonFastForwardAutoMerged,
-    // Conflict
+    Abort,
+}
+
+#[derive(Debug)]
+pub struct RawGitCommandOutput {
+    pub status: i32,
+    pub stdout: String,
+    pub stderr: String,
+}
+
+impl RawGitCommandOutput {
+    pub fn success(&self) -> bool {
+        self.status == 0
+    }
+}
+
+impl From<std::process::Output> for RawGitCommandOutput {
+    fn from(output: Output) -> Self {
+        let status = output.status.code().unwrap_or(-1);
+        let stdout = String::from_utf8(output.stdout).unwrap_or_default();
+        let stderr = String::from_utf8(output.stderr).unwrap_or_default();
+        RawGitCommandOutput {
+            status,
+            stdout,
+            stderr,
+        }
+    }
+}
+
+impl TryFrom<RawGitCommandOutput> for GitCommandOutput<()> {
+    type Error = Error;
+
+    fn try_from(raw: RawGitCommandOutput) -> Result<Self, Self::Error> {
+        match raw.success() {
+            true => raw.interpret_to(()),
+            false => Err(Error::Raw(raw)),
+        }
+    }
+}
+
+impl RawGitCommandOutput {
+    pub fn interpret_to<T>(self, item: T) -> Result<GitCommandOutput<T>, Error> {
+        Ok(GitCommandOutput {
+            raw: self,
+            interpreted_to: item,
+        })
+    }
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::Raw(raw) => write!(f, "{}", raw.stderr),
+            Error::FailedToExecute(err) => write!(f, "Failed to execute git command: {}", err),
+            Error::CommandNotFound => write!(f, "git command not found"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Error {
+    Raw(RawGitCommandOutput),
+    FailedToExecute(std::io::Error),
+    CommandNotFound,
+}
+
+#[derive(Debug)]
+pub struct GitCommandOutput<T> {
+    pub raw: RawGitCommandOutput,
+    pub interpreted_to: T,
 }
 
 pub trait RepositorySupport {
-    fn merged_branches(&self) -> Result<Vec<String>, Error>;
-    fn is_clean(&self) -> Result<bool, Error>;
-    fn clone(url: &str, into: &Path) -> Result<(), Error>;
-    fn has_unsaved(&self) -> Result<bool, Error>;
-    fn is_remote_exists(&self) -> Result<bool, Error>;
-    fn get_current_branch(&self) -> Result<String, Error>;
+    fn merged_branches(&self) -> Result<GitCommandOutput<Vec<String>>, Error>;
+    fn is_clean(&self) -> Result<bool, mure_error::Error>;
+    fn clone(url: &str, into: &Path) -> Result<GitCommandOutput<()>, Error>;
+    fn has_unsaved(&self) -> Result<bool, mure_error::Error>;
+    fn is_remote_exists(&self) -> Result<bool, mure_error::Error>;
+    fn get_current_branch(&self) -> Result<String, mure_error::Error>;
     fn pull_fast_forwarded(
         &self,
         remote: &str,
         branch: &str,
-    ) -> Result<PullFastForwardStatus, Error>;
-    fn switch(&self, branch: &str) -> Result<(), Error>;
-    fn delete_branch(&self, branch: &str) -> Result<(), Error>;
-    fn command(&self, args: &[&str]) -> Result<Output, Error>;
-    fn git_command_on_dir(args: &[&str], workdir: &Path) -> Result<Output, Error>;
+    ) -> Result<GitCommandOutput<PullFastForwardStatus>, Error>;
+    fn switch(&self, branch: &str) -> Result<GitCommandOutput<()>, Error>;
+    fn delete_branch(&self, branch: &str) -> Result<GitCommandOutput<()>, Error>;
+    fn command(&self, args: &[&str]) -> Result<RawGitCommandOutput, Error>;
+    fn git_command_on_dir(args: &[&str], workdir: &Path) -> Result<RawGitCommandOutput, Error>;
 }
 
 impl RepositorySupport for Repository {
-    fn merged_branches(&self) -> Result<Vec<String>, Error> {
+    fn merged_branches(&self) -> Result<GitCommandOutput<Vec<String>>, Error> {
         // git for-each-ref --format=%(refname:short) refs/heads/**/* --merged
-        let result = self.command(&[
+        let raw = self.command(&[
             "for-each-ref",
             "--format=%(refname:short)",
             "refs/heads/**/*",
             "--merged",
         ])?;
-        let message = String::from_utf8(result.stdout)?;
-        Ok(split_lines(message))
+        let branches = split_lines(&raw.stdout);
+        Ok(GitCommandOutput {
+            raw,
+            interpreted_to: branches,
+        })
     }
-    fn is_clean(&self) -> Result<bool, Error> {
+    fn is_clean(&self) -> Result<bool, mure_error::Error> {
         Ok(!self.has_unsaved()?)
     }
-    fn clone(url: &str, into: &Path) -> Result<(), Error> {
-        let result = Repository::git_command_on_dir(&["clone", url], into)?;
-        if !result.status.success() {
-            let error = String::from_utf8(result.stderr)?;
-            return Err(Error::from_str(&error));
-        }
-        Ok(())
+
+    fn clone(url: &str, into: &Path) -> Result<GitCommandOutput<()>, Error> {
+        Repository::git_command_on_dir(&["clone", url], into)?.try_into()
     }
-    fn has_unsaved(&self) -> Result<bool, Error> {
+
+    fn has_unsaved(&self) -> Result<bool, mure_error::Error> {
         for entry in self.statuses(None)?.iter() {
             match entry.status() {
                 git2::Status::WT_NEW
@@ -73,98 +140,87 @@ impl RepositorySupport for Repository {
         }
         Ok(false)
     }
-    fn is_remote_exists(&self) -> Result<bool, Error> {
+    fn is_remote_exists(&self) -> Result<bool, mure_error::Error> {
         Ok(!self.remotes()?.is_empty())
     }
-    fn get_current_branch(&self) -> Result<String, Error> {
+
+    fn get_current_branch(&self) -> Result<String, mure_error::Error> {
         if self.is_empty()? {
-            return Err(Error::from_str("repository is empty"));
+            return Err(mure_error::Error::from_str("repository is empty"));
         }
         let head = self.head()?;
 
         let Some(name) = head.shorthand() else {
-            return Err(Error::from_str("head is not a branch"));
+            return Err(mure_error::Error::from_str("head is not a branch"));
         };
         let branch = self.find_branch(name, BranchType::Local)?;
         let Some(branch_name) = branch.name()? else {
-            return Err(Error::from_str("branch name is not found"));
+            return Err(mure_error::Error::from_str("branch name is not found"));
         };
         Ok(branch_name.to_string())
     }
+
     fn pull_fast_forwarded(
         &self,
         remote: &str,
         branch: &str,
-    ) -> Result<PullFastForwardStatus, Error> {
-        let output = self.command(&["pull", "--ff-only", remote, branch])?;
-        if !output.status.success() {
-            let message = String::from_utf8(output.stderr)?;
-            return Err(Error::from_str(&format!(
-                "failed to pull fast forward: {}",
-                message
-            )));
-        }
-        let message = String::from_utf8(output.stdout)?;
-        if message.contains("Already up to date.") {
-            Ok(PullFastForwardStatus::AlreadyUpToDate)
-        } else if message.contains("Fast-forward") {
-            Ok(PullFastForwardStatus::FastForwarded)
-        } else {
-            Ok(PullFastForwardStatus::FetchOnly)
-        }
-    }
-    fn switch(&self, branch: &str) -> Result<(), Error> {
-        let output = self.command(&["switch", branch])?;
-        if !output.status.success() {
-            let message = String::from_utf8(output.stderr)?;
-            return Err(Error::from_str(&format!(
-                "failed to switch to branch {}: {}",
-                branch, message
-            )));
-        }
-        Ok(())
-    }
-    fn delete_branch(&self, branch: &str) -> Result<(), Error> {
-        let output = self.command(&["branch", "-d", branch])?;
-        if !output.status.success() {
-            let message = String::from_utf8(output.stderr)?;
-            return Err(Error::from_str(&format!(
-                "failed to delete branch {}: {}",
-                branch, message
-            )));
-        }
-        Ok(())
+    ) -> Result<GitCommandOutput<PullFastForwardStatus>, Error> {
+        let raw = self.command(&["pull", "--ff-only", remote, branch])?;
+        let status = {
+            let message = raw.stdout.to_string();
+            if message.contains("Already up to date.") {
+                PullFastForwardStatus::AlreadyUpToDate
+            } else if message.contains("Fast-forward") {
+                PullFastForwardStatus::FastForwarded
+            } else {
+                PullFastForwardStatus::Abort
+            }
+        };
+        Ok(GitCommandOutput {
+            raw,
+            interpreted_to: status,
+        })
     }
 
-    fn git_command_on_dir(args: &[&str], workdir: &Path) -> Result<Output, Error> {
-        match Command::new("git").current_dir(workdir).args(args).output() {
-            Ok(output) => Ok(output),
-            Err(e) => Err(Error::GitCommandError(e.to_string())),
+    fn switch(&self, branch: &str) -> Result<GitCommandOutput<()>, Error> {
+        self.command(&["switch", branch])?.try_into()
+    }
+
+    fn delete_branch(&self, branch: &str) -> Result<GitCommandOutput<()>, Error> {
+        self.command(&["branch", "-d", branch])?.try_into()
+    }
+
+    fn git_command_on_dir(args: &[&str], workdir: &Path) -> Result<RawGitCommandOutput, Error> {
+        let output = Command::new("git").current_dir(workdir).args(args).output();
+        match output {
+            Ok(out) => Ok(RawGitCommandOutput::from(out)),
+            Err(err) => Err(Error::FailedToExecute(err)),
         }
     }
 
-    fn command(&self, args: &[&str]) -> Result<Output, Error> {
+    fn command(&self, args: &[&str]) -> Result<RawGitCommandOutput, Error> {
         let Some(workdir) = self.workdir() else {
-            return Err(Error::from_str("parent dir exist"));
+            return Err(Error::CommandNotFound);
         };
         Self::git_command_on_dir(args, workdir)
     }
 }
 
-impl From<git2::Error> for Error {
-    fn from(e: git2::Error) -> Error {
-        Error::from_str(&e.to_string())
+impl From<git2::Error> for mure_error::Error {
+    fn from(e: git2::Error) -> mure_error::Error {
+        mure_error::Error::from_str(&e.to_string())
     }
 }
 
-impl From<FromUtf8Error> for Error {
-    fn from(e: FromUtf8Error) -> Error {
-        Error::from_str(&e.to_string())
+impl From<FromUtf8Error> for mure_error::Error {
+    fn from(e: FromUtf8Error) -> mure_error::Error {
+        mure_error::Error::from_str(&e.to_string())
     }
 }
 
-fn split_lines(lines: String) -> Vec<String> {
+fn split_lines(lines: &str) -> Vec<String> {
     lines
+        .to_string()
         .split('\n')
         .map(|s| s.to_string())
         .filter(|s| !s.is_empty())
@@ -179,7 +235,7 @@ mod tests {
 
     #[test]
     fn test_split_lines() {
-        let lines = "a\nb\nc\n".to_string();
+        let lines = "a\nb\nc\n";
         let expected = vec!["a", "b", "c"];
         assert_eq!(split_lines(lines), expected);
     }
@@ -215,7 +271,7 @@ mod tests {
             .expect("failed to merge test branch");
 
         // now test_branch is same as default branch so it should be merged
-        let Ok(merged_branches) = repo.merged_branches() else {
+        let Ok(GitCommandOutput { interpreted_to: merged_branches , ..}) = repo.merged_branches() else {
             unreachable!();
         };
         assert!(merged_branches.contains(&branch_name.to_string()));
@@ -326,8 +382,8 @@ mod tests {
 
         fixture1.create_empty_commit("commit A").unwrap();
         fixture2.create_empty_commit("commit B").unwrap();
-        let result = repo2.pull_fast_forwarded("origin", "main");
-        assert!(result.is_err());
+        let result = repo2.pull_fast_forwarded("origin", "main").unwrap();
+        assert_eq!(result.interpreted_to, PullFastForwardStatus::Abort);
     }
 
     #[test]
@@ -393,11 +449,15 @@ mod tests {
 
         // try to delete already deleted branch again
         let result = repo.delete_branch("feature");
-        assert!(result.is_err());
-        assert_eq!(
-            result.err().unwrap().message(),
-            "failed to delete branch feature: error: branch 'feature' not found.\n"
-        );
+        match result {
+            Err(err) => {
+                let Error::Raw(raw) = err else {
+                    unreachable!();
+                };
+                assert_eq!(raw.stderr, "error: branch 'feature' not found.\n");
+            }
+            _ => unreachable!(),
+        }
     }
 
     #[test]
@@ -410,9 +470,15 @@ mod tests {
         let temp_dir = Temp::new_dir().expect("failed to create temp dir");
         let repo_url = "";
         let result = <git2::Repository as RepositorySupport>::clone(repo_url, temp_dir.as_path());
-        let Err(error) = result else {
-            unreachable!();
-        };
-        assert_eq!(error.message(), "fatal: repository '' does not exist\n");
+
+        match result {
+            Err(err) => {
+                let Error::Raw(raw) = err else {
+                    unreachable!();
+                };
+                assert_eq!(raw.stderr, "fatal: repository '' does not exist\n");
+            }
+            _ => unreachable!(),
+        }
     }
 }

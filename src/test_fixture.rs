@@ -3,7 +3,10 @@ use std::io::Write;
 use git2::Repository;
 use mktemp::Temp;
 
-use crate::{git::RepositorySupport, mure_error::Error};
+use crate::{
+    git::{GitCommandOutput, RepositorySupport},
+    mure_error::Error,
+};
 
 #[cfg(test)]
 pub struct Fixture {
@@ -41,10 +44,13 @@ impl Fixture {
         Ok(())
     }
     /// Create empty commit.
-    pub fn create_empty_commit(&self, message: &str) -> Result<(), Error> {
+    pub fn create_empty_commit(
+        &self,
+        message: &str,
+    ) -> Result<GitCommandOutput<()>, crate::git::Error> {
         self.repo
-            .command(&["commit", "--allow-empty", "-m", message])?;
-        Ok(())
+            .command(&["commit", "--allow-empty", "-m", message])?
+            .interpret_to(())
     }
 
     pub fn create_file(&self, filename: &str, content: &str) -> Result<(), Error> {

@@ -39,3 +39,9 @@ impl From<io::Error> for Error {
         Error::from_str(&e.to_string())
     }
 }
+
+impl From<crate::git::Error> for Error {
+    fn from(e: crate::git::Error) -> Error {
+        Error::GitCommandError(e.to_string())
+    }
+}
