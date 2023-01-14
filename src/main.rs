@@ -5,6 +5,7 @@ mod config;
 mod gh;
 mod git;
 mod github;
+mod misc;
 mod mure_error;
 
 #[cfg(test)]
