@@ -34,6 +34,8 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
 
     let default_branch = get_default_branch()?;
 
+    repo.fetch_prune()?;
+
     // switch to default branch if current branch is clean
     if repo.is_clean()? {
         // git switch $default_branch
