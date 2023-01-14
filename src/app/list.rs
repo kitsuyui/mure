@@ -108,4 +108,50 @@ fn read_symlink_as_mure_repo(path: &PathBuf) -> Result<MureRepo, Error> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use mktemp::Temp;
+
+    use super::*;
+
+    #[test]
+    fn test_search_mure_repo() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+
+        let config: Config = toml::from_str(
+            format!(
+                r#"
+            [core]
+            base_dir = "{}"
+
+            [github]
+            username = "kitsuyui"
+
+            [shell]
+            cd_shims = "mcd"
+        "#,
+                temp_dir.to_str().unwrap()
+            )
+            .as_str(),
+        )
+        .unwrap();
+        let repos = search_mure_repo(&config);
+        assert_eq!(repos.len(), 0);
+        crate::app::clone::clone(&config, "https://github.com/kitsuyui/mure").unwrap();
+
+        let repos = search_mure_repo(&config);
+        assert_eq!(repos.len(), 1);
+
+        for repo in repos {
+            assert!(repo.is_ok());
+            let mure_repo = repo.unwrap();
+            assert_eq!(
+                mure_repo.repo.fully_qualified_name(),
+                "github.com/kitsuyui/mure"
+            );
+            assert_eq!(mure_repo.repo.name_with_owner(), "kitsuyui/mure");
+            assert_eq!(mure_repo.repo.owner, "kitsuyui");
+            assert_eq!(mure_repo.repo.domain, "github.com");
+            assert_eq!(mure_repo.repo.repo, "mure");
+        }
+    }
+}
