@@ -41,13 +41,13 @@ pub fn list(config: &Config, path: bool, full: bool) -> Result<(), Error> {
     Ok(())
 }
 
-struct MureRepo {
-    relative_path: PathBuf,
-    absolute_path: PathBuf,
-    repo: RepoInfo,
+pub struct MureRepo {
+    pub relative_path: PathBuf,
+    pub absolute_path: PathBuf,
+    pub repo: RepoInfo,
 }
 
-fn search_mure_repo(config: &Config) -> Vec<Result<MureRepo, Error>> {
+pub fn search_mure_repo(config: &Config) -> Vec<Result<MureRepo, Error>> {
     let mut repos = vec![];
     match config.base_path().read_dir() {
         Ok(dir) => {
