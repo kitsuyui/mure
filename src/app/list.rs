@@ -154,4 +154,36 @@ mod tests {
             assert_eq!(mure_repo.repo.repo, "mure");
         }
     }
+
+    #[test]
+    fn test_app() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+
+        let config: Config = toml::from_str(
+            format!(
+                r#"
+            [core]
+            base_dir = "{}"
+
+            [github]
+            username = "kitsuyui"
+
+            [shell]
+            cd_shims = "mcd"
+        "#,
+                temp_dir.to_str().unwrap()
+            )
+            .as_str(),
+        )
+        .unwrap();
+        crate::app::clone::clone(&config, "https://github.com/kitsuyui/mure").unwrap();
+        let repos = search_mure_repo(&config);
+        assert_eq!(repos.len(), 1);
+
+        // list doesn't panic
+        list(&config, false, false).unwrap();
+        list(&config, true, false).unwrap();
+        list(&config, false, true).unwrap();
+        list(&config, true, true).unwrap();
+    }
 }
