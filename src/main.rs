@@ -63,6 +63,10 @@ fn main() -> Result<(), mure_error::Error> {
             Ok(_) => (),
             Err(e) => println!("{}", e),
         },
+        List { path, full } => match app::list::list(&config, path, full) {
+            Ok(_) => (),
+            Err(e) => println!("{}", e),
+        },
     }
     Ok(())
 }
@@ -104,6 +108,13 @@ enum Commands {
     Path {
         #[arg(index = 1, help = "repository name")]
         name: String,
+    },
+    #[command(about = "list repositories")]
+    List {
+        #[arg(short, long, help = "show full name")]
+        full: bool,
+        #[arg(short, long, help = "show path")]
+        path: bool,
     },
 }
 
@@ -164,6 +175,50 @@ fn test_parser() {
         Cli {
             command: Commands::Path { name },
         } => assert_eq!(name, "mure"),
+        _ => panic!("failed to parse"),
+    }
+
+    match Cli::parse_from(vec!["mure", "list"]) {
+        Cli {
+            command:
+                Commands::List {
+                    full: false,
+                    path: false,
+                },
+        } => (),
+        _ => panic!("failed to parse"),
+    }
+
+    match Cli::parse_from(vec!["mure", "list", "--full"]) {
+        Cli {
+            command:
+                Commands::List {
+                    full: true,
+                    path: false,
+                },
+        } => (),
+        _ => panic!("failed to parse"),
+    }
+
+    match Cli::parse_from(vec!["mure", "list", "--path"]) {
+        Cli {
+            command:
+                Commands::List {
+                    full: false,
+                    path: true,
+                },
+        } => (),
+        _ => panic!("failed to parse"),
+    }
+
+    match Cli::parse_from(vec!["mure", "list", "--full", "--path"]) {
+        Cli {
+            command:
+                Commands::List {
+                    full: true,
+                    path: true,
+                },
+        } => (),
         _ => panic!("failed to parse"),
     }
 }

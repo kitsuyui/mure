@@ -16,6 +16,16 @@ impl RepoInfo {
             repo: repo.to_string(),
         }
     }
+
+    #[allow(dead_code)]
+    pub fn fully_qualified_name(&self) -> String {
+        format!("{}/{}/{}", self.domain, self.owner, self.repo)
+    }
+
+    pub fn name_with_owner(&self) -> String {
+        format!("{}/{}", self.owner, self.repo)
+    }
+
     pub fn parse_url(url: &str) -> Option<Self> {
         let patterns = [
             GITHUB_HTTPS_URL.clone(),
@@ -87,5 +97,12 @@ mod tests {
         assert!(parse("https://example.com/something/else").is_none());
         assert!(parse("git@example.com:kitsuyui/mure.git").is_none());
         assert!(parse("ssh://git@example.com/kitsuyui/mure.git").is_none());
+    }
+
+    #[test]
+    fn test_names() {
+        let repo_info = RepoInfo::new("github.com", "kitsuyui", "mure");
+        assert_eq!(repo_info.fully_qualified_name(), "github.com/kitsuyui/mure");
+        assert_eq!(repo_info.name_with_owner(), "kitsuyui/mure");
     }
 }
