@@ -1,3 +1,4 @@
+name: happy-commit
 on:
   - pull_request
 
