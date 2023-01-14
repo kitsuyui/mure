@@ -95,6 +95,7 @@ pub trait RepositorySupport {
         remote: &str,
         branch: &str,
     ) -> Result<GitCommandOutput<PullFastForwardStatus>, Error>;
+    fn fetch_prune(&self) -> Result<GitCommandOutput<()>, Error>;
     fn switch(&self, branch: &str) -> Result<GitCommandOutput<()>, Error>;
     fn delete_branch(&self, branch: &str) -> Result<GitCommandOutput<()>, Error>;
     fn command(&self, args: &[&str]) -> Result<RawGitCommandOutput, Error>;
@@ -180,6 +181,10 @@ impl RepositorySupport for Repository {
             raw,
             interpreted_to: status,
         })
+    }
+
+    fn fetch_prune(&self) -> Result<GitCommandOutput<()>, Error> {
+        self.command(&["fetch", "--prune"])?.try_into()
     }
 
     fn switch(&self, branch: &str) -> Result<GitCommandOutput<()>, Error> {
