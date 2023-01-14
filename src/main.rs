@@ -5,6 +5,7 @@ mod config;
 mod gh;
 mod git;
 mod github;
+mod misc;
 mod mure_error;
 
 #[cfg(test)]
@@ -26,22 +27,26 @@ fn main() -> Result<(), mure_error::Error> {
                 println!("{}", e);
             }
         },
-        Refresh { repository } => {
-            let current_dir = std::env::current_dir()?;
-            let Some(current_dir) = current_dir.to_str() else {
+        Refresh { repository, all } => {
+            if all {
+                app::refresh::refresh_all(&config)?;
+            } else {
+                let current_dir = std::env::current_dir()?;
+                let Some(current_dir) = current_dir.to_str() else {
                 return Err(mure_error::Error::from_str("failed to get current dir"));
             };
-            let repo_path = match repository {
-                Some(repo) => repo,
-                None => current_dir.to_string(),
-            };
-            match app::refresh::refresh(&repo_path) {
-                Ok(r) => {
-                    if let app::refresh::RefreshStatus::Update { message, .. } = r {
-                        println!("{}", message);
+                let repo_path = match repository {
+                    Some(repo) => repo,
+                    None => current_dir.to_string(),
+                };
+                match app::refresh::refresh(&repo_path) {
+                    Ok(r) => {
+                        if let app::refresh::RefreshStatus::Update { message, .. } = r {
+                            println!("{}", message);
+                        }
                     }
+                    Err(e) => println!("{}", e),
                 }
-                Err(e) => println!("{}", e),
             }
         }
         Issues { query } => {
@@ -93,6 +98,13 @@ enum Commands {
             help = "repository to refresh. if not specified, current directory is used"
         )]
         repository: Option<String>,
+        #[arg(
+            short,
+            long,
+            help = "refresh all repositories",
+            default_value = "false"
+        )]
+        all: bool,
     },
     #[command(about = "show issues")]
     Issues {
@@ -136,17 +148,34 @@ fn test_parser() {
 
     match Cli::parse_from(vec!["mure", "refresh"]) {
         Cli {
-            command: Commands::Refresh { repository: None },
+            command:
+                Commands::Refresh {
+                    repository: None,
+                    all: false,
+                },
         } => (),
         _ => panic!("failed to parse"),
     }
 
     match Cli::parse_from(vec!["mure", "refresh", "react"]) {
         Cli {
-            command: Commands::Refresh {
-                repository: Some(repo),
-            },
+            command:
+                Commands::Refresh {
+                    repository: Some(repo),
+                    all: false,
+                },
         } => assert_eq!(repo, "react"),
+        _ => panic!("failed to parse"),
+    }
+
+    match Cli::parse_from(vec!["mure", "refresh", "--all"]) {
+        Cli {
+            command:
+                Commands::Refresh {
+                    repository: None,
+                    all: true,
+                },
+        } => (),
         _ => panic!("failed to parse"),
     }
 

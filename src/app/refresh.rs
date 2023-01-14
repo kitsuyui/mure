@@ -2,9 +2,12 @@ use std::path::PathBuf;
 
 use git2::Repository;
 
+use crate::config::Config;
 use crate::gh::get_default_branch;
 use crate::git::{PullFastForwardStatus, RepositorySupport};
 use crate::mure_error::Error;
+
+use super::list::search_mure_repo;
 
 #[derive(Debug)]
 pub enum RefreshStatus {
@@ -19,6 +22,56 @@ pub enum RefreshStatus {
 pub enum Reason {
     NotGitRepository,
     NoRemote,
+}
+
+pub fn refresh_all(config: &Config) -> Result<(), Error> {
+    let repos = search_mure_repo(config);
+    if repos.is_empty() {
+        println!("No repositories found");
+        return Ok(());
+    }
+    for repo in repos {
+        match repo {
+            Ok(mure_repo) => {
+                println!("> Refreshing {}", mure_repo.repo.repo);
+                let result = refresh(
+                    #[allow(clippy::expect_used)]
+                    mure_repo
+                        .absolute_path
+                        .to_str()
+                        .expect("failed to convert to str"),
+                );
+                match result {
+                    Ok(status) => match status {
+                        RefreshStatus::DoNothing(reason) => match reason {
+                            Reason::NotGitRepository => {
+                                println!("{} is not a git repository", mure_repo.repo.repo)
+                            }
+                            Reason::NoRemote => {
+                                println!("{} has no remote", mure_repo.repo.repo)
+                            }
+                        },
+                        RefreshStatus::Update {
+                            switch_to_default,
+                            message,
+                        } => {
+                            if switch_to_default {
+                                println!("Switched to {}", mure_repo.repo.repo)
+                            }
+                            println!("{}", message)
+                        }
+                    },
+                    Err(e) => {
+                        println!("{}", e.message());
+                    }
+                }
+            }
+            Err(e) => {
+                println!("{}", e.message());
+            }
+        }
+    }
+    Ok(())
 }
 
 pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
@@ -138,5 +191,45 @@ mod tests {
             RefreshStatus::DoNothing(Reason::NotGitRepository) => {}
             _ => unreachable!(),
         }
+    }
+
+    #[test]
+    fn test_no_remote() {
+        let fixture = Fixture::create().unwrap();
+        let path = fixture.repo.path().parent().unwrap();
+
+        let result = refresh(path.to_str().unwrap()).unwrap();
+        match result {
+            RefreshStatus::DoNothing(Reason::NoRemote) => {}
+            _ => unreachable!(),
+        }
+    }
+
+    #[test]
+    fn test_refresh_all() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+
+        let config: Config = toml::from_str(
+            format!(
+                r#"
+            [core]
+            base_dir = "{}"
+
+            [github]
+            username = "kitsuyui"
+
+            [shell]
+            cd_shims = "mcd"
+        "#,
+                temp_dir.to_str().unwrap()
+            )
+            .as_str(),
+        )
+        .unwrap();
+        let repos = search_mure_repo(&config);
+        assert_eq!(repos.len(), 0);
+        crate::app::clone::clone(&config, "https://github.com/kitsuyui/mure").unwrap();
+
+        refresh_all(&config).unwrap();
     }
 }
