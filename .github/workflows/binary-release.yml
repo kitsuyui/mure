@@ -52,9 +52,11 @@ jobs:
             package: gcc-arm-linux-gnueabihf musl-tools
             cflags: -U_FORTIFY_SOURCE
             gcc: arm-linux-gnueabihf-gcc
-          - arch: x86_64-pc-windows-gnu
-            os: ubuntu-latest
-            package: gcc-mingw-w64-x86-64
+          # unresolved import `std::os::unix`
+          # `std::os::unix` is not available on Windows. I think there is a simple solution. I will not release Windows version until it is ready.
+          # - arch: x86_64-pc-windows-gnu
+          #   os: ubuntu-latest
+          #   package: gcc-mingw-w64-x86-64
           - arch: x86_64-apple-darwin
             os: macos-latest
           - arch: aarch64-apple-darwin
