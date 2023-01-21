@@ -85,7 +85,7 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
         return Ok(RefreshStatus::DoNothing(Reason::NoRemote));
     }
 
-    let default_branch = get_default_branch()?;
+    let default_branch = get_default_branch(&repo_path.into())?;
 
     repo.fetch_prune()?;
 
@@ -162,6 +162,15 @@ mod tests {
             .unwrap();
         fixture.repo.command(&["fetch", "origin"]).unwrap();
         fixture.repo.command(&["switch", "main"]).unwrap();
+        fixture
+            .repo
+            .command(&[
+                "remote",
+                "set-url",
+                "origin",
+                "https://github.com/kitsuyui/mure.git",
+            ])
+            .unwrap();
         let path = fixture.repo.path().parent().unwrap();
 
         let result = refresh(path.to_str().unwrap());
@@ -171,7 +180,8 @@ mod tests {
             }) => {
                 assert!(!switch_to_default);
             }
-            _ => unreachable!(),
+            Ok(resut) => unreachable!("{:?}", resut),
+            Err(e) => unreachable!("{:?}", e),
         }
         drop(fixture_origin);
         drop(fixture);

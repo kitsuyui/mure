@@ -1,7 +1,7 @@
 use crate::mure_error::Error;
-use std::process::Command;
+use std::{path::PathBuf, process::Command};
 
-pub fn get_default_branch() -> Result<String, Error> {
+pub fn get_default_branch(workdir: &PathBuf) -> Result<String, Error> {
     let result = match Command::new("gh")
         .args([
             "repo",
@@ -11,6 +11,7 @@ pub fn get_default_branch() -> Result<String, Error> {
             "-t",
             "{{.defaultBranchRef.name}}",
         ])
+        .current_dir(workdir)
         .output()
     {
         Ok(output) => output,
@@ -32,12 +33,14 @@ pub fn get_default_branch() -> Result<String, Error> {
 
 #[cfg(test)]
 mod tests {
+    use std::env::current_dir;
+
     use super::*;
     use assay::assay;
 
     #[test]
     fn test_get_default_branch() {
-        assert_eq!(get_default_branch().unwrap(), "main");
+        assert_eq!(get_default_branch(&current_dir().unwrap()).unwrap(), "main");
     }
 
     #[assay(
@@ -46,7 +49,7 @@ mod tests {
         ]
       )]
     fn test_gh_is_not_installed() {
-        let result = get_default_branch();
+        let result = get_default_branch(&current_dir().unwrap());
         assert!(result.is_err());
         assert_eq!(
             result.err().unwrap().to_string(),
@@ -60,7 +63,7 @@ mod tests {
         ]
       )]
     fn test_gh_token_is_not_set() {
-        let result = get_default_branch();
+        let result = get_default_branch(&current_dir().unwrap());
         assert!(result.is_err());
     }
 }
