@@ -39,7 +39,7 @@ pub fn show_issues(query: &str) -> Result<(), Error> {
     };
 
     match github::api::search_all_repositories(&token, query) {
-        Err(e) => println!("{}", e),
+        Err(e) => println!("{e}"),
         Ok(result) => {
             match repository_summary(result) {
                 Ok(results) => {
@@ -55,7 +55,7 @@ pub fn show_issues(query: &str) -> Result<(), Error> {
                         );
                     }
                 }
-                Err(e) => println!("{}", e),
+                Err(e) => println!("{e}"),
             }
         }
     };

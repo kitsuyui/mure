@@ -14,11 +14,7 @@ pub fn shell_shims(config: &Config) -> String {
 }
 
 fn shell_shims_for_cd_directly(bin_name: &str, fn_name: &str) -> String {
-    format!(
-        "function {fn_name}() {{ local p=$({bin_name} path \"$1\") && cd \"$p\" }}\n",
-        fn_name = fn_name,
-        bin_name = bin_name
-    )
+    format!("function {fn_name}() {{ local p=$({bin_name} path \"$1\") && cd \"$p\" }}\n")
 }
 
 fn resolve(config: &Config, name: &str) -> Result<PathBuf, Error> {

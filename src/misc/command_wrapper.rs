@@ -99,7 +99,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::Raw(raw) => write!(f, "{}", raw.stderr),
-            Error::FailedToExecute(err) => write!(f, "Failed to execute command: {}", err),
+            Error::FailedToExecute(err) => write!(f, "Failed to execute command: {err}"),
         }
     }
 }
