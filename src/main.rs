@@ -24,7 +24,7 @@ fn main() -> Result<(), mure_error::Error> {
                 println!("Initialized config file");
             }
             Err(e) => {
-                println!("{}", e);
+                println!("{e}");
             }
         },
         Refresh { repository, all } => {
@@ -42,10 +42,10 @@ fn main() -> Result<(), mure_error::Error> {
                 match app::refresh::refresh(&repo_path) {
                     Ok(r) => {
                         if let app::refresh::RefreshStatus::Update { message, .. } = r {
-                            println!("{}", message);
+                            println!("{message}");
                         }
                     }
-                    Err(e) => println!("{}", e),
+                    Err(e) => println!("{e}"),
                 }
             }
         }
@@ -57,20 +57,20 @@ fn main() -> Result<(), mure_error::Error> {
             let query = query.unwrap_or_else(|| default_query.to_string());
             match app::issues::show_issues(&query) {
                 Ok(_) => (),
-                Err(e) => println!("{}", e),
+                Err(e) => println!("{e}"),
             }
         }
         Clone { url } => match app::clone::clone(&config, &url) {
             Ok(_) => (),
-            Err(e) => println!("{}", e),
+            Err(e) => println!("{e}"),
         },
         Path { name } => match app::path::path(&config, &name) {
             Ok(_) => (),
-            Err(e) => println!("{}", e),
+            Err(e) => println!("{e}"),
         },
         List { path, full } => match app::list::list(&config, path, full) {
             Ok(_) => (),
-            Err(e) => println!("{}", e),
+            Err(e) => println!("{e}"),
         },
     }
     Ok(())

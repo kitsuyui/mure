@@ -19,7 +19,7 @@ pub fn list(config: &Config, path: bool, full: bool) -> Result<(), Error> {
                         .absolute_path
                         .to_str()
                         .expect("failed to convert to str");
-                    println!("{}", abpath);
+                    println!("{abpath}");
                 } else if full {
                     println!("{}", mure_repo.repo.name_with_owner());
                 } else if path {
@@ -28,7 +28,7 @@ pub fn list(config: &Config, path: bool, full: bool) -> Result<(), Error> {
                         .relative_path
                         .to_str()
                         .expect("failed to convert to str");
-                    println!("{}", relpath);
+                    println!("{relpath}");
                 } else {
                     println!("{}", mure_repo.repo.repo);
                 }

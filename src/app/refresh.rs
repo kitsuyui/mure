@@ -58,7 +58,7 @@ pub fn refresh_all(config: &Config) -> Result<(), Error> {
                             if switch_to_default {
                                 println!("Switched to {}", mure_repo.repo.repo)
                             }
-                            println!("{}", message)
+                            println!("{message}")
                         }
                     },
                     Err(e) => {
@@ -93,7 +93,7 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
     if repo.is_clean()? {
         // git switch $default_branch
         repo.switch(&default_branch)?;
-        messages.push(format!("Switched to {}", default_branch));
+        messages.push(format!("Switched to {default_branch}"));
     }
 
     // TODO: origin is hardcoded. If you have multiple remotes, you need to specify which one to use.
@@ -122,7 +122,7 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
 
     for branch in delete_branches {
         repo.delete_branch(branch)?;
-        messages.push(format!("Deleted branch {}", branch));
+        messages.push(format!("Deleted branch {branch}"));
     }
 
     Ok(RefreshStatus::Update {

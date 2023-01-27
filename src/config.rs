@@ -133,7 +133,7 @@ mod tests {
     fn test_resolve_config_path() {
         let home = std::env::var("HOME").unwrap();
         match resolve_config_path() {
-            Ok(path) => assert_eq!(path.to_str().unwrap(), &format!("{}/.mure.toml", home)),
+            Ok(path) => assert_eq!(path.to_str().unwrap(), &format!("{home}/.mure.toml")),
             Err(err) => unreachable!("{:?}", err),
         }
     }

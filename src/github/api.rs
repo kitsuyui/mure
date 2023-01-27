@@ -73,7 +73,7 @@ fn search_repositories(
     let request_body = SearchRepositoryQuery::build_query(variables);
     let client = reqwest::blocking::Client::new();
     let url = "https://api.github.com/graphql";
-    let bearer = format!("bearer {}", token);
+    let bearer = format!("bearer {token}");
     let res = client
         .post(url)
         .header("Authorization", bearer)
