@@ -1,4 +1,5 @@
-use clap::{command, Parser, Subcommand};
+use clap::{command, CommandFactory, Parser, Subcommand};
+use clap_complete::{generate, Shell};
 
 mod app;
 mod config;
@@ -12,9 +13,12 @@ mod mure_error;
 mod test_fixture;
 
 fn main() -> Result<(), mure_error::Error> {
+    use Commands::*;
     let config = app::initialize::get_config_or_initialize()?;
     let cli = Cli::parse();
-    use Commands::*;
+    let mut command = Cli::command();
+    let name = command.get_name().to_string();
+
     match cli.command {
         Init { shell: true } => {
             println!("{}", app::path::shell_shims(&config));
@@ -27,6 +31,9 @@ fn main() -> Result<(), mure_error::Error> {
                 println!("{e}");
             }
         },
+        Completion { shell } => {
+            generate(shell, &mut command, name, &mut std::io::stdout());
+        }
         Refresh { repository, all } => {
             if all {
                 app::refresh::refresh_all(&config)?;
@@ -77,8 +84,7 @@ fn main() -> Result<(), mure_error::Error> {
 }
 
 #[derive(Parser, Debug, Clone)]
-#[command(author, version, about, long_about = None)]
-#[command(next_line_help = true)]
+#[command(author, version, about, long_about = None, next_line_help = true, name = "mure")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -90,6 +96,15 @@ enum Commands {
     Init {
         #[arg(short, long, help = "Output shims for mure. To be evaluated in shell.")]
         shell: bool,
+    },
+    #[command(about = "completion for shell")]
+    Completion {
+        #[arg(
+            short,
+            long,
+            help = "Output completion for shell. To be evaluated in shell."
+        )]
+        shell: Shell,
     },
     #[command(about = "refresh repository")]
     Refresh {
