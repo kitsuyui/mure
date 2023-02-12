@@ -93,6 +93,14 @@ You can change the name of the shim by set `shell.cd_shims` in `.mure.toml` to a
 `mure path` shows the path of the repository for given repository name.
 (Internally, `mure path` is used for `mcd` command.)
 
+### Setup shell completion
+
+```sh
+mure completion --shell zsh > /usr/local/Homebrew/completions/zsh/_mure
+ln -svf /usr/local/Homebrew/completions/zsh/_mure /usr/local/share/zsh/site-functions/_mure
+autoload -Uz compinit && compinit
+```
+
 ## License
 
 BSD-3-Clause
