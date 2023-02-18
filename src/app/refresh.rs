@@ -229,7 +229,7 @@ mod tests {
             username = "kitsuyui"
 
             [shell]
-            cd_shims = "mcd"
+            cd_shims = "mucd"
         "#,
                 temp_dir.to_str().unwrap()
             )

@@ -38,7 +38,7 @@ base_dir = "~/.dev"
 username = "kitsuyui"
 
 [shell]
-cd_shims = "mcd"
+cd_shims = "mucd"
 ```
 
 ### Set up shell environment for mure
@@ -77,13 +77,13 @@ Default search query is `user:{username} is:public fork:false archived:false`
 
 `mure refresh` updates the repository.
 
-### mcd
+### mucd
 
-`mcd` is a command line shims for changing directory shortcut.
-mcd enables you to change directory into the repository.
+`mucd` is a command line shims for changing directory shortcut.
+mucd enables you to change directory into the repository.
 
 ```shell
-mcd something  # => Same as `cd $HOME/.dev/something`
+mucd something  # => Same as `cd $HOME/.dev/something`
 ```
 
 You can change the name of the shim by set `shell.cd_shims` in `.mure.toml` to another name.
@@ -91,7 +91,7 @@ You can change the name of the shim by set `shell.cd_shims` in `.mure.toml` to a
 ### mure path
 
 `mure path` shows the path of the repository for given repository name.
-(Internally, `mure path` is used for `mcd` command.)
+(Internally, `mure path` is used for `mucd` command.)
 
 ### Setup shell completion
 

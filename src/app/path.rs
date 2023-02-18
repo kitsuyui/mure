@@ -45,7 +45,7 @@ mod tests {
                 username: "".to_string(),
             },
             shell: Some(Shell {
-                cd_shims: Some("mcd".to_string()),
+                cd_shims: Some("mucd".to_string()),
             }),
         };
         git2::Repository::init(config.base_path().join("test_repo")).unwrap();
@@ -74,13 +74,13 @@ mod tests {
                 username: "".to_string(),
             },
             shell: Some(Shell {
-                cd_shims: Some("mcd".to_string()),
+                cd_shims: Some("mucd".to_string()),
             }),
         };
         let shims = shell_shims(&config);
         assert_eq!(
             shims,
-            "function mcd() { local p=$(mure path \"$1\") && cd \"$p\" }\n"
+            "function mucd() { local p=$(mure path \"$1\") && cd \"$p\" }\n"
         );
     }
 }
