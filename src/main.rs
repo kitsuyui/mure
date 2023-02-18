@@ -146,6 +146,16 @@ enum Commands {
 }
 
 #[test]
+fn test_main() {
+    use assert_cmd::Command;
+    use predicates::prelude::*;
+    let assert = Command::new("cargo")
+        .args(vec!["run", "--", "--help"])
+        .assert();
+    assert.success().stdout(predicate::str::contains("Usage:"));
+}
+
+#[test]
 fn test_parser() {
     match Cli::parse_from(vec!["mure", "init"]) {
         Cli {
