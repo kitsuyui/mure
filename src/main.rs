@@ -145,134 +145,177 @@ enum Commands {
     },
 }
 
-#[test]
-fn test_main() {
+#[cfg(test)]
+mod tests {
+    use super::*;
     use assert_cmd::Command;
     use predicates::prelude::*;
-    let assert = Command::new("cargo")
-        .args(vec!["run", "--", "--help"])
-        .assert();
-    assert.success().stdout(predicate::str::contains("Usage:"));
-}
 
-#[test]
-fn test_parser() {
-    match Cli::parse_from(vec!["mure", "init"]) {
-        Cli {
-            command: Commands::Init { shell: false },
-        } => (),
-        _ => panic!("failed to parse"),
+    #[test]
+    fn test_help() {
+        let assert = Command::new("cargo")
+            .args(vec!["run", "--", "--help"])
+            .assert();
+        assert.success().stdout(predicate::str::contains("Usage:"));
     }
 
-    match Cli::parse_from(vec!["mure", "init", "--shell"]) {
-        Cli {
-            command: Commands::Init { shell: true },
-        } => (),
-        _ => panic!("failed to parse"),
+    #[test]
+    fn test_init_shell() {
+        let assert = Command::new("cargo")
+            .args(vec!["run", "--", "init", "--shell"])
+            .assert();
+        assert
+            .success()
+            .stdout(predicate::str::contains("function mucd() {"));
     }
 
-    match Cli::parse_from(vec!["mure", "refresh"]) {
-        Cli {
-            command:
-                Commands::Refresh {
-                    repository: None,
-                    all: false,
-                },
-        } => (),
-        _ => panic!("failed to parse"),
+    #[test]
+    fn test_init() {
+        let assert = Command::new("cargo")
+            .args(vec!["run", "--", "init"])
+            .assert();
+        assert.success().stdout(
+            predicate::str::contains("Initialized config file")
+                .or(predicate::str::contains("config file already exists")),
+        );
     }
 
-    match Cli::parse_from(vec!["mure", "refresh", "react"]) {
-        Cli {
-            command:
-                Commands::Refresh {
-                    repository: Some(repo),
-                    all: false,
-                },
-        } => assert_eq!(repo, "react"),
-        _ => panic!("failed to parse"),
+    #[test]
+    fn test_completion() {
+        let assert = Command::new("cargo")
+            .args(vec!["run", "--", "completion", "--shell", "bash"])
+            .assert();
+        assert
+            .success()
+            .stdout(predicate::str::contains("complete -F _mure"));
+
+        let assert = Command::new("cargo")
+            .args(vec!["run", "--", "completion", "--shell", "zsh"])
+            .assert();
+        assert
+            .success()
+            .stdout(predicate::str::contains("_mure \"$@\""));
     }
 
-    match Cli::parse_from(vec!["mure", "refresh", "--all"]) {
-        Cli {
-            command:
-                Commands::Refresh {
-                    repository: None,
-                    all: true,
-                },
-        } => (),
-        _ => panic!("failed to parse"),
-    }
+    #[test]
+    fn test_parser() {
+        match Cli::parse_from(vec!["mure", "init"]) {
+            Cli {
+                command: Commands::Init { shell: false },
+            } => (),
+            _ => panic!("failed to parse"),
+        }
 
-    match Cli::parse_from(vec!["mure", "issues"]) {
-        Cli {
-            command: Commands::Issues { query: None },
-        } => (),
-        _ => panic!("failed to parse"),
-    }
+        match Cli::parse_from(vec!["mure", "init", "--shell"]) {
+            Cli {
+                command: Commands::Init { shell: true },
+            } => (),
+            _ => panic!("failed to parse"),
+        }
 
-    match Cli::parse_from(vec!["mure", "issues", "--query", "is:public"]) {
-        Cli {
-            command: Commands::Issues { query: Some(query) },
-        } => assert_eq!(query, "is:public"),
-        _ => panic!("failed to parse"),
-    }
+        match Cli::parse_from(vec!["mure", "refresh"]) {
+            Cli {
+                command:
+                    Commands::Refresh {
+                        repository: None,
+                        all: false,
+                    },
+            } => (),
+            _ => panic!("failed to parse"),
+        }
 
-    match Cli::parse_from(vec!["mure", "clone", "https://github.com/kitsuyui/mure"]) {
-        Cli {
-            command: Commands::Clone { url },
-        } => assert_eq!(url, "https://github.com/kitsuyui/mure"),
-        _ => panic!("failed to parse"),
-    }
+        match Cli::parse_from(vec!["mure", "refresh", "react"]) {
+            Cli {
+                command:
+                    Commands::Refresh {
+                        repository: Some(repo),
+                        all: false,
+                    },
+            } => assert_eq!(repo, "react"),
+            _ => panic!("failed to parse"),
+        }
 
-    match Cli::parse_from(vec!["mure", "path", "mure"]) {
-        Cli {
-            command: Commands::Path { name },
-        } => assert_eq!(name, "mure"),
-        _ => panic!("failed to parse"),
-    }
+        match Cli::parse_from(vec!["mure", "refresh", "--all"]) {
+            Cli {
+                command:
+                    Commands::Refresh {
+                        repository: None,
+                        all: true,
+                    },
+            } => (),
+            _ => panic!("failed to parse"),
+        }
 
-    match Cli::parse_from(vec!["mure", "list"]) {
-        Cli {
-            command:
-                Commands::List {
-                    full: false,
-                    path: false,
-                },
-        } => (),
-        _ => panic!("failed to parse"),
-    }
+        match Cli::parse_from(vec!["mure", "issues"]) {
+            Cli {
+                command: Commands::Issues { query: None },
+            } => (),
+            _ => panic!("failed to parse"),
+        }
 
-    match Cli::parse_from(vec!["mure", "list", "--full"]) {
-        Cli {
-            command:
-                Commands::List {
-                    full: true,
-                    path: false,
-                },
-        } => (),
-        _ => panic!("failed to parse"),
-    }
+        match Cli::parse_from(vec!["mure", "issues", "--query", "is:public"]) {
+            Cli {
+                command: Commands::Issues { query: Some(query) },
+            } => assert_eq!(query, "is:public"),
+            _ => panic!("failed to parse"),
+        }
 
-    match Cli::parse_from(vec!["mure", "list", "--path"]) {
-        Cli {
-            command:
-                Commands::List {
-                    full: false,
-                    path: true,
-                },
-        } => (),
-        _ => panic!("failed to parse"),
-    }
+        match Cli::parse_from(vec!["mure", "clone", "https://github.com/kitsuyui/mure"]) {
+            Cli {
+                command: Commands::Clone { url },
+            } => assert_eq!(url, "https://github.com/kitsuyui/mure"),
+            _ => panic!("failed to parse"),
+        }
 
-    match Cli::parse_from(vec!["mure", "list", "--full", "--path"]) {
-        Cli {
-            command:
-                Commands::List {
-                    full: true,
-                    path: true,
-                },
-        } => (),
-        _ => panic!("failed to parse"),
+        match Cli::parse_from(vec!["mure", "path", "mure"]) {
+            Cli {
+                command: Commands::Path { name },
+            } => assert_eq!(name, "mure"),
+            _ => panic!("failed to parse"),
+        }
+
+        match Cli::parse_from(vec!["mure", "list"]) {
+            Cli {
+                command:
+                    Commands::List {
+                        full: false,
+                        path: false,
+                    },
+            } => (),
+            _ => panic!("failed to parse"),
+        }
+
+        match Cli::parse_from(vec!["mure", "list", "--full"]) {
+            Cli {
+                command:
+                    Commands::List {
+                        full: true,
+                        path: false,
+                    },
+            } => (),
+            _ => panic!("failed to parse"),
+        }
+
+        match Cli::parse_from(vec!["mure", "list", "--path"]) {
+            Cli {
+                command:
+                    Commands::List {
+                        full: false,
+                        path: true,
+                    },
+            } => (),
+            _ => panic!("failed to parse"),
+        }
+
+        match Cli::parse_from(vec!["mure", "list", "--full", "--path"]) {
+            Cli {
+                command:
+                    Commands::List {
+                        full: true,
+                        path: true,
+                    },
+            } => (),
+            _ => panic!("failed to parse"),
+        }
     }
 }
