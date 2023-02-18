@@ -58,7 +58,7 @@ impl ConfigSupport for Config {
         self.base_path().join(repo)
     }
     fn resolve_cd_shims(&self) -> String {
-        let default = "mcd".to_string();
+        let default = "mucd".to_string();
         match &self.shell {
             Some(shell) => shell.cd_shims.clone().unwrap_or(default),
             None => default,
@@ -92,7 +92,7 @@ fn create_config(path: &Path) -> Result<Config, Error> {
             username: "".to_string(),
         },
         shell: Some(Shell {
-            cd_shims: Some("mcd".to_string()),
+            cd_shims: Some("mucd".to_string()),
         }),
     };
     let content = toml::to_string(&config)?;
@@ -149,7 +149,7 @@ mod tests {
             username = "kitsuyui"
 
             [shell]
-            cd_shims = "mcd"
+            cd_shims = "mucd"
         "#,
         )
         .unwrap();
