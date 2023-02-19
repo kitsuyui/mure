@@ -108,7 +108,7 @@ fn resolve_config_path() -> Result<PathBuf, Error> {
     // TODO: Is $HOME/.murerc better?
     // Or should try ~/.config/mure.toml?
 
-    if let Some(home) = std::env::var("MURE_CONFIG_PATH").ok() {
+    if let Ok(home) = std::env::var("MURE_CONFIG_PATH") {
         return Ok(PathBuf::from(home));
     }
 

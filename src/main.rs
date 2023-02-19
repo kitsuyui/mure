@@ -123,6 +123,7 @@ enum Commands {
 mod tests {
     use super::*;
     use assert_cmd::Command;
+    use mktemp::Temp;
     use predicates::prelude::*;
 
     #[test]
@@ -164,7 +165,10 @@ mod tests {
 
     #[test]
     fn test_init() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+        let mure_config_path = temp_dir.as_path().join(".mure.toml");
         let assert = Command::new("cargo")
+            .env("MURE_CONFIG_PATH", mure_config_path)
             .args(vec![
                 "llvm-cov",
                 "--lcov",
@@ -180,8 +184,101 @@ mod tests {
             predicate::str::contains("Initialized config file")
                 .or(predicate::str::contains("config file already exists")),
         );
+        drop(temp_dir);
     }
 
+    #[test]
+    fn test_refresh() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+        let mure_config_path = temp_dir.as_path().join(".mure.toml");
+        let base_dir = Temp::new_dir().expect("failed to create temp dir");
+        let content = format!(
+            r#"
+[core]
+base_dir = "{}"
+
+[github]
+username = "kitsuyui"
+
+[shell]
+cd_shims = "mucd"
+"#,
+            base_dir.as_path().to_str().unwrap()
+        );
+        std::fs::write(&mure_config_path, content).unwrap();
+        let assert = Command::new("cargo")
+            .env("MURE_CONFIG_PATH", mure_config_path)
+            .args(vec![
+                "llvm-cov",
+                "--lcov",
+                "--output-path",
+                "coverage.lcov",
+                "--no-report",
+                "run",
+                "--",
+                "refresh",
+                "--all",
+            ])
+            .assert();
+        assert.success();
+        drop(temp_dir);
+        drop(base_dir);
+    }
+
+    #[test]
+    fn test_clone_and_refresh() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+        let mure_config_path = temp_dir.as_path().join(".mure.toml");
+        let base_dir = Temp::new_dir().expect("failed to create temp dir");
+        let content = format!(
+            r#"
+[core]
+base_dir = "{}"
+
+[github]
+username = "kitsuyui"
+
+[shell]
+cd_shims = "mucd"
+"#,
+            base_dir.as_path().to_str().unwrap()
+        );
+        std::fs::write(&mure_config_path, content).unwrap();
+        let assert = Command::new("cargo")
+            .env("MURE_CONFIG_PATH", &mure_config_path)
+            .args(vec![
+                "llvm-cov",
+                "--lcov",
+                "--output-path",
+                "coverage.lcov",
+                "--no-report",
+                "run",
+                "--",
+                "clone",
+                "https://github.com/kitsuyui/mure.git",
+            ])
+            .assert();
+        assert.success();
+
+        let assert = Command::new("cargo")
+            .env("MURE_CONFIG_PATH", &mure_config_path)
+            .args(vec![
+                "llvm-cov",
+                "--lcov",
+                "--output-path",
+                "coverage.lcov",
+                "--no-report",
+                "run",
+                "--",
+                "refresh",
+                "mure",
+            ])
+            .assert();
+        assert.success();
+
+        drop(temp_dir);
+        drop(base_dir);
+    }
     #[test]
     fn test_completion() {
         let assert = Command::new("cargo")
