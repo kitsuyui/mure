@@ -1,7 +1,7 @@
+use crate::app::{issues::show_issues_main, refresh::refresh_main};
 use clap::{command, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Shell};
-
-use crate::app::{issues::show_issues_main, refresh::refresh_main};
+use Commands::*;
 
 mod app;
 mod config;
@@ -15,7 +15,6 @@ mod mure_error;
 mod test_fixture;
 
 fn main() -> Result<(), mure_error::Error> {
-    use Commands::*;
     let config = app::initialize::get_config_or_initialize()?;
     let cli = Cli::parse();
     let mut command = Cli::command();
