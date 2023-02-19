@@ -96,8 +96,8 @@ You can change the name of the shim by set `shell.cd_shims` in `.mure.toml` to a
 ### Setup shell completion
 
 ```sh
-mure completion --shell zsh > /usr/local/Homebrew/completions/zsh/_mure
-ln -svf /usr/local/Homebrew/completions/zsh/_mure /usr/local/share/zsh/site-functions/_mure
+mkdir -p ~/.zfunc
+mure completion --shell zsh > ~/.zfunc/_mure
 autoload -Uz compinit && compinit
 ```
 

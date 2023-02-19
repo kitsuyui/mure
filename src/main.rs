@@ -17,6 +17,7 @@ fn main() -> Result<(), mure_error::Error> {
     let config = app::initialize::get_config_or_initialize()?;
     let cli = Cli::parse();
     let mut command = Cli::command();
+    let mut mucd_command = MuCdCli::command();
     let name = command.get_name().to_string();
 
     match cli.command {
@@ -31,7 +32,21 @@ fn main() -> Result<(), mure_error::Error> {
                 println!("{e}");
             }
         },
-        Completion { shell } => {
+        Completion { shell, cd: true } => {
+            // TODO: Currently clap-completion does not support dynamic completion.
+            // bash completion is unstable and zsh completion is not supported.
+            // https://github.com/clap-rs/clap/issues/1232
+            generate(
+                shell,
+                &mut mucd_command,
+                config
+                    .shell
+                    .and_then(|s| s.cd_shims.or(Some("mucd".to_string())))
+                    .unwrap_or_else(|| "mucd".to_string()),
+                &mut std::io::stdout(),
+            );
+        }
+        Completion { shell, cd: false } => {
             generate(shell, &mut command, name, &mut std::io::stdout());
         }
         Refresh { repository, all } => {
@@ -40,8 +55,8 @@ fn main() -> Result<(), mure_error::Error> {
             } else {
                 let current_dir = std::env::current_dir()?;
                 let Some(current_dir) = current_dir.to_str() else {
-                return Err(mure_error::Error::from_str("failed to get current dir"));
-            };
+                    return Err(mure_error::Error::from_str("failed to get current dir"));
+                };
                 let repo_path = match repository {
                     Some(repo) => repo,
                     None => current_dir.to_string(),
@@ -90,6 +105,13 @@ struct Cli {
     command: Commands,
 }
 
+#[derive(Parser, Debug, Clone)]
+#[command(author, version, about, long_about = None, next_line_help = true, name = "mucd")]
+struct MuCdCli {
+    #[arg(index = 1, help = "repository name")]
+    target: String,
+}
+
 #[derive(Subcommand, Debug, Clone)]
 enum Commands {
     #[command(about = "create ~/.mure.toml")]
@@ -105,6 +127,13 @@ enum Commands {
             help = "Output completion for shell. To be evaluated in shell."
         )]
         shell: Shell,
+        #[arg(
+            short,
+            long,
+            help = "Output completion for mucd. To be evaluated in shell.",
+            default_value = "false"
+        )]
+        cd: bool,
     },
     #[command(about = "refresh repository")]
     Refresh {
@@ -195,6 +224,13 @@ mod tests {
         assert
             .success()
             .stdout(predicate::str::contains("_mure \"$@\""));
+
+        let assert = Command::new("cargo")
+            .args(vec!["run", "--", "completion", "--shell", "zsh", "--cd"])
+            .assert();
+        assert
+            .success()
+            .stdout(predicate::str::contains("_mucd \"$@\""));
     }
 
     #[test]
