@@ -40,8 +40,8 @@ fn main() -> Result<(), mure_error::Error> {
             } else {
                 let current_dir = std::env::current_dir()?;
                 let Some(current_dir) = current_dir.to_str() else {
-                return Err(mure_error::Error::from_str("failed to get current dir"));
-            };
+                    return Err(mure_error::Error::from_str("failed to get current dir"));
+                };
                 let repo_path = match repository {
                     Some(repo) => repo,
                     None => current_dir.to_string(),
