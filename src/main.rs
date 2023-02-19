@@ -154,7 +154,16 @@ mod tests {
     #[test]
     fn test_help() {
         let assert = Command::new("cargo")
-            .args(vec!["run", "--", "--help"])
+            .args(vec![
+                "llvm-cov",
+                "--lcov",
+                "--output-path",
+                "coverage.lcov",
+                "--no-report",
+                "run",
+                "--",
+                "--help",
+            ])
             .assert();
         assert.success().stdout(predicate::str::contains("Usage:"));
     }
@@ -162,7 +171,17 @@ mod tests {
     #[test]
     fn test_init_shell() {
         let assert = Command::new("cargo")
-            .args(vec!["run", "--", "init", "--shell"])
+            .args(vec![
+                "llvm-cov",
+                "--lcov",
+                "--output-path",
+                "coverage.lcov",
+                "--no-report",
+                "run",
+                "--",
+                "init",
+                "--shell",
+            ])
             .assert();
         assert
             .success()
@@ -172,7 +191,16 @@ mod tests {
     #[test]
     fn test_init() {
         let assert = Command::new("cargo")
-            .args(vec!["run", "--", "init"])
+            .args(vec![
+                "llvm-cov",
+                "--lcov",
+                "--output-path",
+                "coverage.lcov",
+                "--no-report",
+                "run",
+                "--",
+                "init",
+            ])
             .assert();
         assert.success().stdout(
             predicate::str::contains("Initialized config file")
@@ -183,14 +211,36 @@ mod tests {
     #[test]
     fn test_completion() {
         let assert = Command::new("cargo")
-            .args(vec!["run", "--", "completion", "--shell", "bash"])
+            .args(vec![
+                "llvm-cov",
+                "--lcov",
+                "--output-path",
+                "coverage.lcov",
+                "--no-report",
+                "run",
+                "--",
+                "completion",
+                "--shell",
+                "bash",
+            ])
             .assert();
         assert
             .success()
             .stdout(predicate::str::contains("complete -F _mure"));
 
         let assert = Command::new("cargo")
-            .args(vec!["run", "--", "completion", "--shell", "zsh"])
+            .args(vec![
+                "llvm-cov",
+                "--lcov",
+                "--output-path",
+                "coverage.lcov",
+                "--no-report",
+                "run",
+                "--",
+                "completion",
+                "--shell",
+                "zsh",
+            ])
             .assert();
         assert
             .success()
