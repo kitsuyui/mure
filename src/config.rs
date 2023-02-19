@@ -107,6 +107,11 @@ fn create_config(path: &Path) -> Result<Config, Error> {
 fn resolve_config_path() -> Result<PathBuf, Error> {
     // TODO: Is $HOME/.murerc better?
     // Or should try ~/.config/mure.toml?
+
+    if let Ok(home) = std::env::var("MURE_CONFIG_PATH") {
+        return Ok(PathBuf::from(home));
+    }
+
     Ok(PathBuf::from(
         shellexpand::tilde("~/.mure.toml").to_string(),
     ))
@@ -127,6 +132,7 @@ impl From<toml::ser::Error> for Error {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assay::assay;
     use mktemp::Temp;
 
     #[test]
@@ -134,6 +140,20 @@ mod tests {
         let home = std::env::var("HOME").unwrap();
         match resolve_config_path() {
             Ok(path) => assert_eq!(path.to_str().unwrap(), &format!("{home}/.mure.toml")),
+            Err(err) => unreachable!("{:?}", err),
+        }
+    }
+
+    #[test]
+    #[assay(
+        env = [
+            ("MURE_CONFIG_PATH", "/tmp/mure.toml"),
+        ]
+      )]
+    fn test_env_mure_config_path() {
+        std::env::set_var("MURE_CONFIG_PATH", "/tmp/mure.toml");
+        match resolve_config_path() {
+            Ok(path) => assert_eq!(path.to_str().unwrap(), "/tmp/mure.toml"),
             Err(err) => unreachable!("{:?}", err),
         }
     }

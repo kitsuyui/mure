@@ -1,5 +1,7 @@
+use crate::app::{issues::show_issues_main, refresh::refresh_main};
 use clap::{command, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Shell};
+use Commands::*;
 
 mod app;
 mod config;
@@ -13,7 +15,6 @@ mod mure_error;
 mod test_fixture;
 
 fn main() -> Result<(), mure_error::Error> {
-    use Commands::*;
     let config = app::initialize::get_config_or_initialize()?;
     let cli = Cli::parse();
     let mut command = Cli::command();
@@ -35,37 +36,10 @@ fn main() -> Result<(), mure_error::Error> {
             generate(shell, &mut command, name, &mut std::io::stdout());
         }
         Refresh { repository, all } => {
-            if all {
-                app::refresh::refresh_all(&config)?;
-            } else {
-                let current_dir = std::env::current_dir()?;
-                let Some(current_dir) = current_dir.to_str() else {
-                return Err(mure_error::Error::from_str("failed to get current dir"));
-            };
-                let repo_path = match repository {
-                    Some(repo) => repo,
-                    None => current_dir.to_string(),
-                };
-                match app::refresh::refresh(&repo_path) {
-                    Ok(r) => {
-                        if let app::refresh::RefreshStatus::Update { message, .. } = r {
-                            println!("{message}");
-                        }
-                    }
-                    Err(e) => println!("{e}"),
-                }
-            }
+            refresh_main(&config, all, repository)?;
         }
         Issues { query } => {
-            let default_query = format!(
-                "user:{} is:public fork:false archived:false",
-                &config.github.username
-            );
-            let query = query.unwrap_or_else(|| default_query.to_string());
-            match app::issues::show_issues(&query) {
-                Ok(_) => (),
-                Err(e) => println!("{e}"),
-            }
+            show_issues_main(&config, query)?;
         }
         Clone { url } => match app::clone::clone(&config, &url) {
             Ok(_) => (),
@@ -149,12 +123,22 @@ enum Commands {
 mod tests {
     use super::*;
     use assert_cmd::Command;
+    use mktemp::Temp;
     use predicates::prelude::*;
 
     #[test]
     fn test_help() {
         let assert = Command::new("cargo")
-            .args(vec!["run", "--", "--help"])
+            .args(vec![
+                "llvm-cov",
+                "--lcov",
+                "--output-path",
+                "coverage.lcov",
+                "--no-report",
+                "run",
+                "--",
+                "--help",
+            ])
             .assert();
         assert.success().stdout(predicate::str::contains("Usage:"));
     }
@@ -162,7 +146,17 @@ mod tests {
     #[test]
     fn test_init_shell() {
         let assert = Command::new("cargo")
-            .args(vec!["run", "--", "init", "--shell"])
+            .args(vec![
+                "llvm-cov",
+                "--lcov",
+                "--output-path",
+                "coverage.lcov",
+                "--no-report",
+                "run",
+                "--",
+                "init",
+                "--shell",
+            ])
             .assert();
         assert
             .success()
@@ -171,26 +165,153 @@ mod tests {
 
     #[test]
     fn test_init() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+        let mure_config_path = temp_dir.as_path().join(".mure.toml");
         let assert = Command::new("cargo")
-            .args(vec!["run", "--", "init"])
+            .env("MURE_CONFIG_PATH", mure_config_path)
+            .args(vec![
+                "llvm-cov",
+                "--lcov",
+                "--output-path",
+                "coverage.lcov",
+                "--no-report",
+                "run",
+                "--",
+                "init",
+            ])
             .assert();
         assert.success().stdout(
             predicate::str::contains("Initialized config file")
                 .or(predicate::str::contains("config file already exists")),
         );
+        drop(temp_dir);
     }
 
     #[test]
+    fn test_refresh() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+        let mure_config_path = temp_dir.as_path().join(".mure.toml");
+        let base_dir = Temp::new_dir().expect("failed to create temp dir");
+        let content = format!(
+            r#"
+[core]
+base_dir = "{}"
+
+[github]
+username = "kitsuyui"
+
+[shell]
+cd_shims = "mucd"
+"#,
+            base_dir.as_path().to_str().unwrap()
+        );
+        std::fs::write(&mure_config_path, content).unwrap();
+        let assert = Command::new("cargo")
+            .env("MURE_CONFIG_PATH", mure_config_path)
+            .args(vec![
+                "llvm-cov",
+                "--lcov",
+                "--output-path",
+                "coverage.lcov",
+                "--no-report",
+                "run",
+                "--",
+                "refresh",
+                "--all",
+            ])
+            .assert();
+        assert.success();
+        drop(temp_dir);
+        drop(base_dir);
+    }
+
+    #[test]
+    fn test_clone_and_refresh() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+        let mure_config_path = temp_dir.as_path().join(".mure.toml");
+        let base_dir = Temp::new_dir().expect("failed to create temp dir");
+        let content = format!(
+            r#"
+[core]
+base_dir = "{}"
+
+[github]
+username = "kitsuyui"
+
+[shell]
+cd_shims = "mucd"
+"#,
+            base_dir.as_path().to_str().unwrap()
+        );
+        std::fs::write(&mure_config_path, content).unwrap();
+        let assert = Command::new("cargo")
+            .env("MURE_CONFIG_PATH", &mure_config_path)
+            .args(vec![
+                "llvm-cov",
+                "--lcov",
+                "--output-path",
+                "coverage.lcov",
+                "--no-report",
+                "run",
+                "--",
+                "clone",
+                "https://github.com/kitsuyui/mure.git",
+            ])
+            .assert();
+        assert.success();
+
+        let assert = Command::new("cargo")
+            .env("MURE_CONFIG_PATH", &mure_config_path)
+            .args(vec![
+                "llvm-cov",
+                "--lcov",
+                "--output-path",
+                "coverage.lcov",
+                "--no-report",
+                "run",
+                "--",
+                "refresh",
+                "mure",
+            ])
+            .assert();
+        assert.success();
+
+        drop(temp_dir);
+        drop(base_dir);
+    }
+    #[test]
     fn test_completion() {
         let assert = Command::new("cargo")
-            .args(vec!["run", "--", "completion", "--shell", "bash"])
+            .args(vec![
+                "llvm-cov",
+                "--lcov",
+                "--output-path",
+                "coverage.lcov",
+                "--no-report",
+                "run",
+                "--",
+                "completion",
+                "--shell",
+                "bash",
+            ])
             .assert();
         assert
             .success()
             .stdout(predicate::str::contains("complete -F _mure"));
 
         let assert = Command::new("cargo")
-            .args(vec!["run", "--", "completion", "--shell", "zsh"])
+            .args(vec![
+                "llvm-cov",
+                "--lcov",
+                "--output-path",
+                "coverage.lcov",
+                "--no-report",
+                "run",
+                "--",
+                "completion",
+                "--shell",
+                "zsh",
+            ])
             .assert();
         assert
             .success()

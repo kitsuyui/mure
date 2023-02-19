@@ -9,6 +9,30 @@ use crate::mure_error::Error;
 
 use super::list::search_mure_repo;
 
+pub fn refresh_main(config: &Config, all: bool, repository: Option<String>) -> Result<(), Error> {
+    if all {
+        refresh_all(config)?;
+    } else {
+        let current_dir = std::env::current_dir()?;
+        let Some(current_dir) = current_dir.to_str() else {
+            return Err(Error::from_str("failed to get current dir"));
+        };
+        let repo_path = match repository {
+            Some(repo) => repo,
+            None => current_dir.to_string(),
+        };
+        match refresh(&repo_path) {
+            Ok(r) => {
+                if let RefreshStatus::Update { message, .. } = r {
+                    println!("{message}");
+                }
+            }
+            Err(e) => println!("{e}"),
+        }
+    }
+    Ok(())
+}
+
 #[derive(Debug)]
 pub enum RefreshStatus {
     DoNothing(Reason),
