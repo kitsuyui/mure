@@ -1,6 +1,8 @@
 use clap::{command, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Shell};
 
+use crate::app::refresh::refresh_main;
+
 mod app;
 mod config;
 mod gh;
@@ -35,26 +37,7 @@ fn main() -> Result<(), mure_error::Error> {
             generate(shell, &mut command, name, &mut std::io::stdout());
         }
         Refresh { repository, all } => {
-            if all {
-                app::refresh::refresh_all(&config)?;
-            } else {
-                let current_dir = std::env::current_dir()?;
-                let Some(current_dir) = current_dir.to_str() else {
-                    return Err(mure_error::Error::from_str("failed to get current dir"));
-                };
-                let repo_path = match repository {
-                    Some(repo) => repo,
-                    None => current_dir.to_string(),
-                };
-                match app::refresh::refresh(&repo_path) {
-                    Ok(r) => {
-                        if let app::refresh::RefreshStatus::Update { message, .. } = r {
-                            println!("{message}");
-                        }
-                    }
-                    Err(e) => println!("{e}"),
-                }
-            }
+            refresh_main(&config, all, repository)?;
         }
         Issues { query } => {
             let default_query = format!(
