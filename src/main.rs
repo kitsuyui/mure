@@ -1,7 +1,7 @@
 use clap::{command, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Shell};
 
-use crate::app::refresh::refresh_main;
+use crate::app::{issues::show_issues_main, refresh::refresh_main};
 
 mod app;
 mod config;
@@ -40,15 +40,7 @@ fn main() -> Result<(), mure_error::Error> {
             refresh_main(&config, all, repository)?;
         }
         Issues { query } => {
-            let default_query = format!(
-                "user:{} is:public fork:false archived:false",
-                &config.github.username
-            );
-            let query = query.unwrap_or_else(|| default_query.to_string());
-            match app::issues::show_issues(&query) {
-                Ok(_) => (),
-                Err(e) => println!("{e}"),
-            }
+            show_issues_main(&config, query)?;
         }
         Clone { url } => match app::clone::clone(&config, &url) {
             Ok(_) => (),
