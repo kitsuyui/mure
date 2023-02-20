@@ -6,12 +6,18 @@ use crate::config::Config;
 use crate::gh::get_default_branch;
 use crate::git::{PullFastForwardStatus, RepositorySupport};
 use crate::mure_error::Error;
+use crate::verbosity::Verbosity;
 
 use super::list::search_mure_repo;
 
-pub fn refresh_main(config: &Config, all: bool, repository: Option<String>) -> Result<(), Error> {
+pub fn refresh_main(
+    config: &Config,
+    all: bool,
+    repository: Option<String>,
+    verbosity: Verbosity,
+) -> Result<(), Error> {
     if all {
-        refresh_all(config)?;
+        refresh_all(config, verbosity)?;
     } else {
         let current_dir = std::env::current_dir()?;
         let Some(current_dir) = current_dir.to_str() else {
@@ -21,7 +27,7 @@ pub fn refresh_main(config: &Config, all: bool, repository: Option<String>) -> R
             Some(repo) => repo,
             None => current_dir.to_string(),
         };
-        match refresh(&repo_path) {
+        match refresh(&repo_path, verbosity) {
             Ok(r) => {
                 if let RefreshStatus::Update { message, .. } = r {
                     println!("{message}");
@@ -48,7 +54,7 @@ pub enum Reason {
     NoRemote,
 }
 
-pub fn refresh_all(config: &Config) -> Result<(), Error> {
+pub fn refresh_all(config: &Config, verbosity: Verbosity) -> Result<(), Error> {
     let repos = search_mure_repo(config);
     if repos.is_empty() {
         println!("No repositories found");
@@ -64,6 +70,7 @@ pub fn refresh_all(config: &Config) -> Result<(), Error> {
                         .absolute_path
                         .to_str()
                         .expect("failed to convert to str"),
+                    verbosity,
                 );
                 match result {
                     Ok(status) => match status {
@@ -98,7 +105,7 @@ pub fn refresh_all(config: &Config) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
+pub fn refresh(repo_path: &str, verbosity: Verbosity) -> Result<RefreshStatus, Error> {
     let mut messages = vec![];
     if !PathBuf::from(repo_path).join(".git").exists() {
         return Ok(RefreshStatus::DoNothing(Reason::NotGitRepository));
@@ -124,16 +131,28 @@ pub fn refresh(repo_path: &str) -> Result<RefreshStatus, Error> {
     let result = repo.pull_fast_forwarded("origin", &default_branch);
     if let Ok(out) = result {
         match out.interpreted_to {
-            PullFastForwardStatus::AlreadyUpToDate => {
-                // messages.push(out.raw.stderr);
-                // messages.push(out.raw.stdout);
-                messages.push("Already up to date".to_string());
-            }
-            PullFastForwardStatus::FastForwarded => {
-                // messages.push(out.raw.stderr);
-                // messages.push(out.raw.stdout);
-                messages.push("Fast-forwarded".to_string());
-            }
+            PullFastForwardStatus::AlreadyUpToDate => match verbosity {
+                Verbosity::Quiet => (),
+                Verbosity::Normal => {
+                    messages.push("Already up to date".to_string());
+                }
+                Verbosity::Verbose => {
+                    messages.push("Already up to date".to_string());
+                    messages.push(out.raw.stderr);
+                    messages.push(out.raw.stdout);
+                }
+            },
+            PullFastForwardStatus::FastForwarded => match verbosity {
+                Verbosity::Quiet => (),
+                Verbosity::Normal => {
+                    messages.push("Fast-forwarded".to_string());
+                }
+                Verbosity::Verbose => {
+                    messages.push("Fast-forwarded".to_string());
+                    messages.push(out.raw.stderr);
+                    messages.push(out.raw.stdout);
+                }
+            },
             _ => (),
         };
     }
@@ -174,7 +193,7 @@ mod tests {
             .repo
             .command(&["switch", "-c", "main"])
             .unwrap();
-        let result = refresh(origin_path.to_str().unwrap());
+        let result = refresh(origin_path.to_str().unwrap(), Verbosity::Normal);
         match result {
             Ok(RefreshStatus::DoNothing(Reason::NoRemote)) => (),
             _ => unreachable!(),
@@ -197,7 +216,7 @@ mod tests {
             .unwrap();
         let path = fixture.repo.path().parent().unwrap();
 
-        let result = refresh(path.to_str().unwrap());
+        let result = refresh(path.to_str().unwrap(), Verbosity::Normal);
         match result {
             Ok(RefreshStatus::Update {
                 switch_to_default, ..
@@ -220,7 +239,7 @@ mod tests {
             .to_str()
             .expect("failed to get path");
 
-        let result = refresh(path).unwrap();
+        let result = refresh(path, Verbosity::Normal).unwrap();
         match result {
             RefreshStatus::DoNothing(Reason::NotGitRepository) => {}
             _ => unreachable!(),
@@ -232,7 +251,7 @@ mod tests {
         let fixture = Fixture::create().unwrap();
         let path = fixture.repo.path().parent().unwrap();
 
-        let result = refresh(path.to_str().unwrap()).unwrap();
+        let result = refresh(path.to_str().unwrap(), Verbosity::Normal).unwrap();
         match result {
             RefreshStatus::DoNothing(Reason::NoRemote) => {}
             _ => unreachable!(),
@@ -262,8 +281,13 @@ mod tests {
         .unwrap();
         let repos = search_mure_repo(&config);
         assert_eq!(repos.len(), 0);
-        crate::app::clone::clone(&config, "https://github.com/kitsuyui/mure").unwrap();
+        crate::app::clone::clone(
+            &config,
+            "https://github.com/kitsuyui/mure",
+            Verbosity::Normal,
+        )
+        .unwrap();
 
-        refresh_all(&config).unwrap();
+        refresh_all(&config, Verbosity::Verbose).unwrap();
     }
 }
