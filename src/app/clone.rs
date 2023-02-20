@@ -6,7 +6,7 @@ use crate::{config::ConfigSupport, mure_error::Error};
 use std::fs as std_fs;
 use std::os::unix::fs as unix_fs;
 
-pub fn clone(config: &Config, repo_url: &str, _verbosity: Verbosity) -> Result<(), Error> {
+pub fn clone(config: &Config, repo_url: &str, verbosity: Verbosity) -> Result<(), Error> {
     let parsed = RepoInfo::parse_url(repo_url);
     let Some(repo_info) = parsed else {
         return Err(Error::from_str("invalid repo url"));
@@ -20,7 +20,17 @@ pub fn clone(config: &Config, repo_url: &str, _verbosity: Verbosity) -> Result<(
         return Err(Error::from_str("invalid repo url (maybe root dir)"));
     };
 
-    <git2::Repository as RepositorySupport>::clone(repo_url, parent)?;
+    let result = <git2::Repository as RepositorySupport>::clone(repo_url, parent)?;
+    match verbosity {
+        Verbosity::Quiet => (),
+        Verbosity::Normal => {
+            println!("{}", result.raw.stderr);
+        }
+        Verbosity::Verbose => {
+            println!("{}", result.raw.stderr);
+            println!("{}", result.raw.stdout);
+        }
+    }
 
     let link_to = config.repo_work_path(&repo_info.domain, &repo_info.owner, &repo_info.repo);
     match unix_fs::symlink(tobe_clone, link_to) {
