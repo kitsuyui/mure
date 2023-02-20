@@ -46,13 +46,8 @@ fn main() -> Result<(), mure_error::Error> {
             let verbosity = Verbosity::from_bools(quiet, verbose);
             refresh_main(&config, all, repository, verbosity)?;
         }
-        Issues {
-            query,
-            verbose,
-            quiet,
-        } => {
-            let verbosity = Verbosity::from_bools(quiet, verbose);
-            show_issues_main(&config, query, verbosity)?;
+        Issues { query } => {
+            show_issues_main(&config, query)?;
         }
         Clone {
             url,
@@ -121,14 +116,9 @@ enum Commands {
         quiet: bool,
     },
     #[command(about = "show issues")]
-    #[clap(group(ArgGroup::new("verbosity").args(&["verbose", "quiet"])))]
     Issues {
         #[arg(short = 'Q', long, help = "query to search issues")]
         query: Option<String>,
-        #[arg(short, long, help = "verbose", default_value = "false")]
-        verbose: bool,
-        #[arg(short, long, help = "quiet", default_value = "false")]
-        quiet: bool,
     },
     #[command(about = "clone repository")]
     #[clap(group(ArgGroup::new("verbosity").args(&["verbose", "quiet"])))]
@@ -410,24 +400,14 @@ cd_shims = "mucd"
 
         match Cli::parse_from(vec!["mure", "issues"]) {
             Cli {
-                command:
-                    Commands::Issues {
-                        query: None,
-                        quiet: false,
-                        verbose: false,
-                    },
+                command: Commands::Issues { query: None },
             } => (),
             _ => panic!("failed to parse"),
         }
 
         match Cli::parse_from(vec!["mure", "issues", "--query", "is:public"]) {
             Cli {
-                command:
-                    Commands::Issues {
-                        query: Some(query),
-                        quiet: false,
-                        verbose: false,
-                    },
+                command: Commands::Issues { query: Some(query) },
             } => assert_eq!(query, "is:public"),
             _ => panic!("failed to parse"),
         }
