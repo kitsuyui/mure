@@ -111,6 +111,8 @@ fn read_symlink_as_mure_repo(path: &PathBuf) -> Result<MureRepo, Error> {
 mod tests {
     use mktemp::Temp;
 
+    use crate::verbosity::Verbosity;
+
     use super::*;
 
     #[test]
@@ -136,7 +138,12 @@ mod tests {
         .unwrap();
         let repos = search_mure_repo(&config);
         assert_eq!(repos.len(), 0);
-        crate::app::clone::clone(&config, "https://github.com/kitsuyui/mure").unwrap();
+        crate::app::clone::clone(
+            &config,
+            "https://github.com/kitsuyui/mure",
+            Verbosity::Normal,
+        )
+        .unwrap();
 
         let repos = search_mure_repo(&config);
         assert_eq!(repos.len(), 1);
@@ -176,7 +183,12 @@ mod tests {
             .as_str(),
         )
         .unwrap();
-        crate::app::clone::clone(&config, "https://github.com/kitsuyui/mure").unwrap();
+        crate::app::clone::clone(
+            &config,
+            "https://github.com/kitsuyui/mure",
+            Verbosity::Normal,
+        )
+        .unwrap();
         let repos = search_mure_repo(&config);
         assert_eq!(repos.len(), 1);
 

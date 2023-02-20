@@ -6,10 +6,16 @@ use crate::config::Config;
 use crate::gh::get_default_branch;
 use crate::git::{PullFastForwardStatus, RepositorySupport};
 use crate::mure_error::Error;
+use crate::verbosity::Verbosity;
 
 use super::list::search_mure_repo;
 
-pub fn refresh_main(config: &Config, all: bool, repository: Option<String>) -> Result<(), Error> {
+pub fn refresh_main(
+    config: &Config,
+    all: bool,
+    repository: Option<String>,
+    _verbosity: Verbosity,
+) -> Result<(), Error> {
     if all {
         refresh_all(config)?;
     } else {
@@ -262,7 +268,12 @@ mod tests {
         .unwrap();
         let repos = search_mure_repo(&config);
         assert_eq!(repos.len(), 0);
-        crate::app::clone::clone(&config, "https://github.com/kitsuyui/mure").unwrap();
+        crate::app::clone::clone(
+            &config,
+            "https://github.com/kitsuyui/mure",
+            Verbosity::Normal,
+        )
+        .unwrap();
 
         refresh_all(&config).unwrap();
     }

@@ -2,8 +2,13 @@ use crate::config::Config;
 use crate::github;
 use crate::github::api::search_repository_query::SearchRepositoryQueryReposEdgesNodeOnRepository;
 use crate::mure_error::Error;
+use crate::verbosity::Verbosity;
 
-pub fn show_issues_main(config: &Config, query: Option<String>) -> Result<(), Error> {
+pub fn show_issues_main(
+    config: &Config,
+    query: Option<String>,
+    _verbosity: Verbosity,
+) -> Result<(), Error> {
     let default_query = format!(
         "user:{} is:public fork:false archived:false",
         &config.github.username

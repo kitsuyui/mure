@@ -1,6 +1,7 @@
 use crate::app::{issues::show_issues_main, refresh::refresh_main};
-use clap::{command, CommandFactory, Parser, Subcommand};
+use clap::{command, ArgGroup, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Shell};
+use verbosity::Verbosity;
 use Commands::*;
 
 mod app;
@@ -10,6 +11,7 @@ mod git;
 mod github;
 mod misc;
 mod mure_error;
+mod verbosity;
 
 #[cfg(test)]
 mod test_fixture;
@@ -35,16 +37,34 @@ fn main() -> Result<(), mure_error::Error> {
         Completion { shell } => {
             generate(shell, &mut command, name, &mut std::io::stdout());
         }
-        Refresh { repository, all } => {
-            refresh_main(&config, all, repository)?;
+        Refresh {
+            repository,
+            all,
+            verbose,
+            quiet,
+        } => {
+            let verbosity = Verbosity::from_bools(quiet, verbose);
+            refresh_main(&config, all, repository, verbosity)?;
         }
-        Issues { query } => {
-            show_issues_main(&config, query)?;
+        Issues {
+            query,
+            verbose,
+            quiet,
+        } => {
+            let verbosity = Verbosity::from_bools(quiet, verbose);
+            show_issues_main(&config, query, verbosity)?;
         }
-        Clone { url } => match app::clone::clone(&config, &url) {
-            Ok(_) => (),
-            Err(e) => println!("{e}"),
-        },
+        Clone {
+            url,
+            quiet,
+            verbose,
+        } => {
+            let verbosity = Verbosity::from_bools(quiet, verbose);
+            match app::clone::clone(&config, &url, verbosity) {
+                Ok(_) => (),
+                Err(e) => println!("{e}"),
+            }
+        }
         Path { name } => match app::path::path(&config, &name) {
             Ok(_) => (),
             Err(e) => println!("{e}"),
@@ -81,6 +101,7 @@ enum Commands {
         shell: Shell,
     },
     #[command(about = "refresh repository")]
+    #[clap(group(ArgGroup::new("verbosity").args(&["verbose", "quiet"])))]
     Refresh {
         #[arg(
             index = 1,
@@ -94,16 +115,30 @@ enum Commands {
             default_value = "false"
         )]
         all: bool,
+        #[arg(short, long, help = "verbose", default_value = "false")]
+        verbose: bool,
+        #[arg(short, long, help = "quiet", default_value = "false")]
+        quiet: bool,
     },
     #[command(about = "show issues")]
+    #[clap(group(ArgGroup::new("verbosity").args(&["verbose", "quiet"])))]
     Issues {
-        #[arg(short, long, help = "query to search issues")]
+        #[arg(short = 'Q', long, help = "query to search issues")]
         query: Option<String>,
+        #[arg(short, long, help = "verbose", default_value = "false")]
+        verbose: bool,
+        #[arg(short, long, help = "quiet", default_value = "false")]
+        quiet: bool,
     },
     #[command(about = "clone repository")]
+    #[clap(group(ArgGroup::new("verbosity").args(&["verbose", "quiet"])))]
     Clone {
         #[arg(index = 1, help = "repository url")]
         url: String,
+        #[arg(short, long, help = "verbose", default_value = "false")]
+        verbose: bool,
+        #[arg(short, long, help = "quiet", default_value = "false")]
+        quiet: bool,
     },
     #[command(about = "show repository path for name")]
     Path {
@@ -340,28 +375,34 @@ cd_shims = "mucd"
                     Commands::Refresh {
                         repository: None,
                         all: false,
+                        quiet: false,
+                        verbose: false,
                     },
             } => (),
             _ => panic!("failed to parse"),
         }
 
-        match Cli::parse_from(vec!["mure", "refresh", "react"]) {
+        match Cli::parse_from(vec!["mure", "refresh", "react", "--quiet"]) {
             Cli {
                 command:
                     Commands::Refresh {
                         repository: Some(repo),
                         all: false,
+                        quiet: true,
+                        verbose: false,
                     },
             } => assert_eq!(repo, "react"),
             _ => panic!("failed to parse"),
         }
 
-        match Cli::parse_from(vec!["mure", "refresh", "--all"]) {
+        match Cli::parse_from(vec!["mure", "refresh", "--all", "--verbose"]) {
             Cli {
                 command:
                     Commands::Refresh {
                         repository: None,
                         all: true,
+                        quiet: false,
+                        verbose: true,
                     },
             } => (),
             _ => panic!("failed to parse"),
@@ -369,21 +410,36 @@ cd_shims = "mucd"
 
         match Cli::parse_from(vec!["mure", "issues"]) {
             Cli {
-                command: Commands::Issues { query: None },
+                command:
+                    Commands::Issues {
+                        query: None,
+                        quiet: false,
+                        verbose: false,
+                    },
             } => (),
             _ => panic!("failed to parse"),
         }
 
         match Cli::parse_from(vec!["mure", "issues", "--query", "is:public"]) {
             Cli {
-                command: Commands::Issues { query: Some(query) },
+                command:
+                    Commands::Issues {
+                        query: Some(query),
+                        quiet: false,
+                        verbose: false,
+                    },
             } => assert_eq!(query, "is:public"),
             _ => panic!("failed to parse"),
         }
 
         match Cli::parse_from(vec!["mure", "clone", "https://github.com/kitsuyui/mure"]) {
             Cli {
-                command: Commands::Clone { url },
+                command:
+                    Commands::Clone {
+                        url,
+                        quiet: false,
+                        verbose: false,
+                    },
             } => assert_eq!(url, "https://github.com/kitsuyui/mure"),
             _ => panic!("failed to parse"),
         }

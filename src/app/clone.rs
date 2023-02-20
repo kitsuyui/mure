@@ -1,11 +1,12 @@
 use crate::config::Config;
 use crate::git::RepositorySupport;
 use crate::github::repo::RepoInfo;
+use crate::verbosity::Verbosity;
 use crate::{config::ConfigSupport, mure_error::Error};
 use std::fs as std_fs;
 use std::os::unix::fs as unix_fs;
 
-pub fn clone(config: &Config, repo_url: &str) -> Result<(), Error> {
+pub fn clone(config: &Config, repo_url: &str, _verbosity: Verbosity) -> Result<(), Error> {
     let parsed = RepoInfo::parse_url(repo_url);
     let Some(repo_info) = parsed else {
         return Err(Error::from_str("invalid repo url"));
@@ -51,13 +52,17 @@ mod tests {
         );
         let config: Config = toml::from_str(&config_file).unwrap();
 
-        match clone(&config, "https://github.com/kitsuyui/mure") {
+        match clone(
+            &config,
+            "https://github.com/kitsuyui/mure",
+            Verbosity::Normal,
+        ) {
             Ok(_) => {}
             Err(_) => unreachable!(),
         }
         let config: Config = toml::from_str(&config_file).unwrap();
 
-        let Err(error) = clone(&config, "") else {
+        let Err(error) = clone(&config, "", Verbosity::Normal) else {
             unreachable!();
         };
         assert_eq!(error.to_string(), "invalid repo url");
