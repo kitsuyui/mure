@@ -1,3 +1,6 @@
+[registries.crates-io]
+protocol = "sparse"
+
 [target.'cfg(all())']
 rustflags = [
     "-Wclippy::fallible_impl_from",
