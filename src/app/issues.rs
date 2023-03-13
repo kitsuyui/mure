@@ -6,8 +6,11 @@ use crate::mure_error::Error;
 
 pub fn show_issues_main(config: &Config, query: Option<String>) -> Result<(), Error> {
     let username = config.github.username.to_string();
-    let default_query = format!("user:{} is:public fork:false archived:false", &username);
-    let query = query.unwrap_or_else(|| default_query.to_string());
+    let default_query = config.github.get_query();
+    let query = match query {
+        Some(q) => q,
+        None => default_query,
+    };
     match show_issues(&username, &query) {
         Ok(_) => (),
         Err(e) => println!("{e}"),

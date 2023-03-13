@@ -43,6 +43,7 @@ mod tests {
             },
             github: GitHub {
                 username: "".to_string(),
+                query: None,
             },
             shell: Some(Shell {
                 cd_shims: Some("mucd".to_string()),
@@ -72,6 +73,7 @@ mod tests {
             },
             github: GitHub {
                 username: "".to_string(),
+                query: None,
             },
             shell: Some(Shell {
                 cd_shims: Some("mucd".to_string()),

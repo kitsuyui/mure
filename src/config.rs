@@ -28,6 +28,20 @@ pub struct Core {
 pub struct GitHub {
     // TODO: try .gitconfig.user.name if not set
     pub username: String,
+    pub query: Option<String>,
+}
+
+impl GitHub {
+    pub fn get_query(&self) -> String {
+        let default_query = format!(
+            "user:{} is:public fork:false archived:false",
+            &self.username
+        );
+        match &self.query {
+            Some(q) => q.to_string(),
+            None => default_query,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -90,6 +104,7 @@ fn create_config(path: &Path) -> Result<Config, Error> {
         },
         github: GitHub {
             username: "".to_string(),
+            query: None,
         },
         shell: Some(Shell {
             cd_shims: Some("mucd".to_string()),
