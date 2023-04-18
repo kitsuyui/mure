@@ -96,15 +96,15 @@ pub fn repository_summary(
 
     let branch_repos = &repos.iter().map(RepoBranch::from_api).collect();
 
-    let covarage_summary = get_repository_coverage(username, branch_repos)?;
-    let covarege_map = covarage_summary
+    let coverage_summary = get_repository_coverage(username, branch_repos)?;
+    let coverage_map = coverage_summary
         .into_iter()
         .map(|c| (c.name.to_string(), c))
         .collect::<std::collections::HashMap<String, Coverage>>();
     let mut results: Vec<RepositorySummary> = Vec::new();
     for repo in repos {
         let gh_summary = GitHubRepoSummary::new_from_api(repo);
-        let cov_summary = covarege_map.get(&repo.name).cloned();
+        let cov_summary = coverage_map.get(&repo.name).cloned();
         let summary = RepositorySummary::new(gh_summary, cov_summary);
         results.push(summary);
     }

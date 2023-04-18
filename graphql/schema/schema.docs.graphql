@@ -10640,12 +10640,12 @@ input EnablePullRequestAutoMergeInput {
   clientMutationId: String
 
   """
-  Commit body to use for the commit when the PR is mergable; if omitted, a default message will be used.
+  Commit body to use for the commit when the PR is mergeable; if omitted, a default message will be used.
   """
   commitBody: String
 
   """
-  Commit headline to use for the commit when the PR is mergable; if omitted, a default message will be used.
+  Commit headline to use for the commit when the PR is mergeable; if omitted, a default message will be used.
   """
   commitHeadline: String
 
