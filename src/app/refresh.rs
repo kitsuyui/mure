@@ -223,7 +223,7 @@ mod tests {
             }) => {
                 assert!(!switch_to_default);
             }
-            Ok(resut) => unreachable!("{:?}", resut),
+            Ok(result) => unreachable!("{:?}", result),
             Err(e) => unreachable!("{:?}", e),
         }
         drop(fixture_origin);
