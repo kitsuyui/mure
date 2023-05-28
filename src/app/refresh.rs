@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use git2::Repository;
 
-use crate::config::Config;
+use crate::config::{Config, ConfigSupport};
 use crate::gh::get_default_branch;
 use crate::git::{PullFastForwardStatus, RepositorySupport};
 use crate::mure_error::Error;
@@ -19,13 +19,11 @@ pub fn refresh_main(
     if all {
         refresh_all(config, verbosity)?;
     } else {
-        let current_dir = std::env::current_dir()?;
-        let Some(current_dir) = current_dir.to_str() else {
-            return Err(Error::from_str("failed to get current dir"));
-        };
+        // If no repository is specified, use the current directory
+        let repo_path = get_git_repository_from_current_dir(config)?;
         let repo_path = match repository {
             Some(repo) => repo,
-            None => current_dir.to_string(),
+            None => repo_path.to_string_lossy().to_string(),
         };
         match refresh(&repo_path, verbosity) {
             Ok(r) => {
@@ -37,6 +35,12 @@ pub fn refresh_main(
         }
     }
     Ok(())
+}
+
+pub fn get_git_repository_from_current_dir(config: &Config) -> Result<PathBuf, Error> {
+    let current_dir = std::env::current_dir()?;
+    let repo = Repository::discover_path(current_dir, &config.base_path())?;
+    Ok(repo)
 }
 
 #[derive(Debug)]
