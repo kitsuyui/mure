@@ -96,3 +96,4 @@ Cargo.lock
 
 
 coverage.lcov
+.env

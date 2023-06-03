@@ -10,6 +10,17 @@ A command line tool for creating and managing multiple repositories.
 cargo install mure
 ```
 
+## Environment variables
+
+This application requires two environment variables.
+
+- `GH_TOKEN`
+- `CODECOV_TOKEN`
+
+`GH_TOKEN` is GitHub access token. `CODECOV_TOKEN` is Codecov access token.
+
+(I haven't set it up to automatically read the contents of .env yet.)
+
 ## Usage
 
 ### directory structure
