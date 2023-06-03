@@ -95,7 +95,7 @@ impl RepositorySupport for Repository {
     ) -> Result<GitCommandOutput<PullFastForwardStatus>, Error> {
         let raw = self.command(&["pull", "--ff-only", remote, branch])?;
         let status = {
-            let message = raw.stdout.to_string();
+            let message = raw.stdout.as_str();
             if message.contains("Already up to date.") {
                 PullFastForwardStatus::AlreadyUpToDate
             } else if message.contains("Fast-forward") {
