@@ -25,7 +25,7 @@ shellexpand = "3.1.0"
 toml = "0.7.4"
 openssl-probe = "0.1.5"
 clap_complete = "4.3.1"
-serde_json = "1.0.96"
+serde_json = "1.0.97"
 
 [dependencies.openssl]
 version = "0.10.54"
