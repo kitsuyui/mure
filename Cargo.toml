@@ -28,7 +28,7 @@ clap_complete = "4.3.1"
 serde_json = "1.0.97"
 
 [dependencies.openssl]
-version = "0.10.54"
+version = "0.10.55"
 features = ["vendored"]
 
 [dev-dependencies]
