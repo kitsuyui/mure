@@ -4,14 +4,19 @@ use crate::github;
 use crate::github::api::search_repository_query::SearchRepositoryQueryReposEdgesNodeOnRepository;
 use crate::mure_error::Error;
 
-pub fn show_issues_main(config: &Config, query: Option<String>) -> Result<(), Error> {
-    let username = config.github.username.to_string();
-    let default_query = config.github.get_query();
-    let query = match query {
-        Some(q) => q,
-        None => default_query,
+pub fn show_issues_main(config: &Config, queries: &Vec<String>) -> Result<(), Error> {
+    let queries = if queries.is_empty() {
+        if config.github.is_both_query_and_queries_set() {
+            return Err(Error::from_str(
+                "Both query and queries are set. Please set only one of them.",
+            ));
+        }
+        config.github.get_queries()
+    } else {
+        queries.clone()
     };
-    match show_issues(&username, &query) {
+    let username = config.github.username.to_string();
+    match show_issues(&username, &queries) {
         Ok(_) => (),
         Err(e) => println!("{e}"),
     }
@@ -111,7 +116,7 @@ pub fn repository_summary(
     Ok(results)
 }
 
-pub fn show_issues(username: &str, query: &str) -> Result<(), Error> {
+pub fn show_issues(username: &str, queries: &Vec<String>) -> Result<(), Error> {
     let token = match std::env::var("GH_TOKEN") {
         Ok(token) => token,
         Err(_) => {
@@ -119,7 +124,7 @@ pub fn show_issues(username: &str, query: &str) -> Result<(), Error> {
         }
     };
 
-    match github::api::search_all_repositories(&token, query) {
+    match github::api::search_all_repositories_by_queries(&token, queries) {
         Err(e) => println!("{e}"),
         Ok(result) => {
             match repository_summary(username, &result) {

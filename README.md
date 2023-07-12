@@ -77,12 +77,25 @@ Example:
 
 <img width="1023" alt="example-mure-issues" src="https://user-images.githubusercontent.com/2596972/184259022-cb428537-f12e-41b0-8b49-a72565afa167.png">
 
-### Options
+#### Options
 
 `--query` option is available for advanced search like `--query 'user:kitsuyui'`
 See this page for more about advanced search: https://docs.github.com/en/search-github/searching-on-github/searching-for-repositories
 
 Default search query is `user:{username} is:public fork:false archived:false`
+
+#### Customization
+
+You can customize the output format by setting `github.queries` in `.mure.toml`.
+For example, if you want to show both of [my (user:kitsuyui) repositories](https://github.com/kitsuyui?tab=repositories) and the [organization gitignore-in](https://github.com/orgs/gitignore-in/repositories)'s repositories, you can set `github.queries` like this:
+
+```toml
+[github]
+queries = [
+  "user:kitsuyui",
+  "owner:gitignore-in",
+]
+```
 
 ### mure refresh
 
