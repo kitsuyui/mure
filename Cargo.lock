@@ -881,7 +881,7 @@ dependencies = [
 
 [[package]]
 name = "mure"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "assay",
  "assert_cmd",
