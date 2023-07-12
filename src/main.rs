@@ -48,7 +48,7 @@ fn main() -> Result<(), mure_error::Error> {
             refresh_main(&config, all, repository, verbosity)?;
         }
         Issues { query } => {
-            show_issues_main(&config, query)?;
+            show_issues_main(&config, &query)?;
         }
         Clone {
             url,
@@ -118,8 +118,12 @@ enum Commands {
     },
     #[command(about = "show issues")]
     Issues {
+        // #[arg(short = 'Q', long, help = "query to search issues")]
+        // query: Option<String>,
+
+        // multiple arguments
         #[arg(short = 'Q', long, help = "query to search issues")]
-        query: Option<String>,
+        query: Vec<String>,
     },
     #[command(about = "clone repository")]
     #[clap(group(ArgGroup::new("verbosity").args(&["verbose", "quiet"])))]
@@ -401,15 +405,17 @@ cd_shims = "mucd"
 
         match Cli::parse_from(vec!["mure", "issues"]) {
             Cli {
-                command: Commands::Issues { query: None },
-            } => (),
+                command: Commands::Issues { query },
+            } => {
+                assert_eq!(query, vec![] as Vec<String>);
+            }
             _ => panic!("failed to parse"),
         }
 
         match Cli::parse_from(vec!["mure", "issues", "--query", "is:public"]) {
             Cli {
-                command: Commands::Issues { query: Some(query) },
-            } => assert_eq!(query, "is:public"),
+                command: Commands::Issues { query },
+            } => assert_eq!(query, vec!["is:public"]),
             _ => panic!("failed to parse"),
         }
 

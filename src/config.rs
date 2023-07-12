@@ -29,18 +29,28 @@ pub struct GitHub {
     // TODO: try .gitconfig.user.name if not set
     pub username: String,
     pub query: Option<String>,
+    pub queries: Option<Vec<String>>,
 }
 
 impl GitHub {
-    pub fn get_query(&self) -> String {
+    pub fn get_queries(&self) -> Vec<String> {
+        if let Some(qs) = &self.queries {
+            return qs.clone();
+        }
+        if let Some(q) = &self.query {
+            return vec![q.to_string()];
+        }
         let default_query = format!(
             "user:{} is:public fork:false archived:false",
             &self.username
         );
         match &self.query {
-            Some(q) => q.to_string(),
-            None => default_query,
+            Some(q) => vec![q.to_string()],
+            None => vec![default_query],
         }
+    }
+    pub fn is_both_query_and_queries_set(&self) -> bool {
+        self.query.is_some() && self.queries.is_some()
     }
 }
 
@@ -105,6 +115,7 @@ fn create_config(path: &Path) -> Result<Config, Error> {
         github: GitHub {
             username: "".to_string(),
             query: None,
+            queries: Some(vec![]),
         },
         shell: Some(Shell {
             cd_shims: Some("mucd".to_string()),

@@ -12,6 +12,19 @@ type URI = String;
 )]
 pub struct SearchRepositoryQuery;
 
+pub fn search_all_repositories_by_queries(
+    token: &str,
+    queries: &Vec<String>,
+) -> Result<Vec<search_repository_query::SearchRepositoryQueryReposEdgesNodeOnRepository>, Error> {
+    let mut results =
+        vec![] as Vec<search_repository_query::SearchRepositoryQueryReposEdgesNodeOnRepository>;
+    for query in queries {
+        let mut repos = search_all_repositories(token, query)?;
+        results.append(&mut repos);
+    }
+    Ok(results)
+}
+
 pub fn search_all_repositories(
     token: &str,
     query: &str,
