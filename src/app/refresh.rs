@@ -39,8 +39,11 @@ pub fn refresh_main(
 
 pub fn get_git_repository_from_current_dir(config: &Config) -> Result<PathBuf, Error> {
     let current_dir = std::env::current_dir()?;
-    let repo = Repository::discover_path(current_dir, &config.base_path())?;
-    Ok(repo)
+    let repo_git = Repository::discover_path(current_dir, &config.base_path())?;
+    if let Some(path) = repo_git.parent() {
+        return Ok(path.to_path_buf());
+    }
+    Err(Error::from_str("not a git repository"))
 }
 
 #[derive(Debug)]
