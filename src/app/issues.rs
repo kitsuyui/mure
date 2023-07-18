@@ -58,6 +58,7 @@ pub struct GitHubRepoSummary {
     pub number_of_pull_requests: i64,
     pub default_branch_name: Option<String>,
     pub url: String,
+    pub last_release_at: String,
 }
 
 impl GitHubRepoSummary {
@@ -73,6 +74,16 @@ impl GitHubRepoSummary {
                 .as_ref()
                 .map(|default_branch_ref| default_branch_ref.name.clone()),
             url: repo.url.clone(),
+            last_release_at: repo
+                .latest_release
+                .as_ref()
+                .map(|release| {
+                    if let Some(content) = release.published_at.as_ref() {
+                        return content[..10].to_string();
+                    }
+                    "****-**-**".to_string()
+                })
+                .unwrap_or("****-**-**".to_string()),
         }
     }
 }
@@ -130,14 +141,15 @@ pub fn show_issues(username: &str, queries: &Vec<String>) -> Result<(), Error> {
             match repository_summary(username, &result) {
                 Ok(results) => {
                     // header
-                    println!("Issues\tPRs\tBranch\tCoverage\tURL");
+                    println!("Issues\tPRs\tBranch\tCoverage\tLastRelease\tURL");
                     for result in results {
                         println!(
-                            "{}\t{}\t{}\t{}\t{}",
+                            "{}\t{}\t{}\t{}\t{}\t{}",
                             result.github.number_of_issues,
                             result.github.number_of_pull_requests,
                             result.default_branch(),
                             result.coverage_text(),
+                            result.github.last_release_at,
                             result.github.url,
                         );
                     }
