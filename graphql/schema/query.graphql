@@ -19,6 +19,10 @@ query SearchRepositoryQuery($query: String!, $cursor: String, $first: Int!) {
           defaultBranchRef {
             name
           }
+          latestRelease {
+            name
+            publishedAt
+          }
           issues(states: OPEN) {
             totalCount
           }

@@ -4,6 +4,9 @@ use graphql_client::{GraphQLQuery, Response};
 #[allow(clippy::upper_case_acronyms)]
 type URI = String;
 
+#[allow(clippy::upper_case_acronyms)]
+type DateTime = String;
+
 #[derive(GraphQLQuery)]
 #[graphql(
     schema_path = "graphql/schema/schema.docs.graphql",
