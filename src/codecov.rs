@@ -36,8 +36,13 @@ pub fn get_repository_coverage(
         .collect::<HashMap<String, codecov::repos::Repo>>();
 
     for repo in repos {
-        if !codecov_all_repositories.contains_key(&repo.name) {
-            continue;
+        if let Some(repo_info) = codecov_all_repositories.get(&repo.name) {
+            if !repo_info.activated {
+                continue;
+            }
+            if !repo_info.active {
+                continue;
+            }
         }
         let author = codecov::author::Author::new("github", username, &repo.name);
         match client.get_branch_detail(&author, &repo.branch) {
@@ -49,7 +54,7 @@ pub fn get_repository_coverage(
                 });
             }
             Err(e) => {
-                println!("Failed to get coverage: {:?}", e);
+                println!("Repo {} Failed to get coverage: {:?}", repo.name, e);
             }
         }
     }
