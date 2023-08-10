@@ -1,7 +1,7 @@
 name: binary release
 
 on:
-  push:
+  pull_request:
   release:
     # "released" events are emitted either when directly be released or be edited from pre-released.
     types: [prereleased, released]
