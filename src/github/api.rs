@@ -7,6 +7,9 @@ type URI = String;
 #[allow(clippy::upper_case_acronyms)]
 type DateTime = String;
 
+#[allow(clippy::upper_case_acronyms)]
+type GitObjectID = String;
+
 #[derive(GraphQLQuery)]
 #[graphql(
     schema_path = "graphql/schema/schema.docs.graphql",

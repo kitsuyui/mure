@@ -16,8 +16,13 @@ query SearchRepositoryQuery($query: String!, $cursor: String, $first: Int!) {
         ... on Repository {
           url
           name
+          __typename
           defaultBranchRef {
             name
+            target {
+              __typename
+              oid
+            }
           }
           latestRelease {
             name
