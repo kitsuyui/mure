@@ -97,6 +97,14 @@ impl RepoBranch {
                 .as_ref()
                 .map(|default_branch_ref| default_branch_ref.name.clone())
                 .unwrap_or_default(),
+            commit_id: repo
+                .default_branch_ref
+                .as_ref()
+                .map(|default_branch_ref| match &default_branch_ref.target {
+                    Some(target) => target.oid.clone(),
+                    None => "".to_string(),
+                })
+                .unwrap_or_default(),
         }
     }
 }

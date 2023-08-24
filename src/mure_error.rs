@@ -53,3 +53,9 @@ impl From<codecov::errors::Error> for Error {
         Error::CodecovError(format!("{:?}", e))
     }
 }
+
+impl From<codecov_cache::errors::Error> for Error {
+    fn from(e: codecov_cache::errors::Error) -> Error {
+        Error::CodecovError(format!("{:?}", e))
+    }
+}

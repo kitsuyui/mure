@@ -265,6 +265,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "codecov-cache"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1eb2662d1b9455ad0457d479d9271a18338ece596fb5762ed21dd1e62b64cf7"
+dependencies = [
+ "codecov",
+ "dirs",
+ "serde_json",
+]
+
+[[package]]
 name = "colorchoice"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -871,6 +882,8 @@ dependencies = [
  "clap",
  "clap_complete",
  "codecov",
+ "codecov-cache",
+ "dirs",
  "git2",
  "graphql_client",
  "mktemp",
