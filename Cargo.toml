@@ -13,7 +13,7 @@ categories = ["command-line-utilities"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "4.3.24", features = ["derive"] }
+clap = { version = "4.4.0", features = ["derive"] }
 git2 = "0.17.2"
 graphql_client = "0.13.0"
 once_cell = "1.18.0"
@@ -24,7 +24,7 @@ serde_derive = "1.0.185"
 shellexpand = "3.1.0"
 toml = "0.7.6"
 openssl-probe = "0.1.5"
-clap_complete = "4.3.2"
+clap_complete = "4.4.0"
 serde_json = "1.0.105"
 codecov = "0.3.3"
 codecov-cache = "0.1.0"
