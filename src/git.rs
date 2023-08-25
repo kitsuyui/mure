@@ -206,7 +206,11 @@ mod tests {
             .expect("failed to merge test branch");
 
         // now test_branch is same as default branch so it should be merged
-        let Ok(GitCommandOutput { interpreted_to: merged_branches , ..}) = repo.merged_branches() else {
+        let Ok(GitCommandOutput {
+            interpreted_to: merged_branches,
+            ..
+        }) = repo.merged_branches()
+        else {
             unreachable!();
         };
         assert!(merged_branches.contains(&branch_name.to_string()));
