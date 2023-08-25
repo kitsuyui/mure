@@ -53,8 +53,8 @@ impl Fixture {
 
     pub fn create_file(&self, filename: &str, content: &str) -> Result<(), Error> {
         let Some(workdir) = self.repo.workdir() else {
-                return Err(Error::from_str("workdir not found"));
-            };
+            return Err(Error::from_str("workdir not found"));
+        };
         let filepath = workdir.join(filename);
         let mut file = std::fs::File::create(filepath)?;
         file.write_all(content.as_bytes())?;
