@@ -31,7 +31,7 @@ codecov-cache = "0.1.0"
 dirs = "5.0.1"
 
 [dependencies.openssl]
-version = "0.10.56"
+version = "0.10.57"
 features = ["vendored"]
 
 [dev-dependencies]
