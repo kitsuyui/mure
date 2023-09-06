@@ -253,9 +253,9 @@ checksum = "cd7cc57abe963c6d3b9d8be5b06ba7c8957a930305ca90304f24ef040aa6f961"
 
 [[package]]
 name = "codecov"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9764cb7ca92c4dbc4add7511155f122ab057a1a5a0c7ea4f5deeeaf3a34bfca"
+checksum = "d9bf63e54d8734d194c90a7708e90bd7e265cad0918ea85e581ae39b417ed1d2"
 dependencies = [
  "reqwest",
  "serde",
@@ -264,9 +264,9 @@ dependencies = [
 
 [[package]]
 name = "codecov-cache"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1eb2662d1b9455ad0457d479d9271a18338ece596fb5762ed21dd1e62b64cf7"
+checksum = "002d0e3611809b048b2b335521158dabdd83b17746d972c22a639dea9319dea9"
 dependencies = [
  "codecov",
  "dirs",
