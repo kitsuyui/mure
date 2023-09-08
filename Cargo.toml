@@ -35,7 +35,7 @@ version = "0.10.57"
 features = ["vendored"]
 
 [dev-dependencies]
-mktemp = "0.5.0"
+mktemp = "0.5.1"
 assay = "0.1.1"
 assert_cmd = "2.0.12"
 predicates = "3.0.3"
