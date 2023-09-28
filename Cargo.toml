@@ -38,4 +38,4 @@ features = ["vendored"]
 mktemp = "0.5.1"
 assay = "0.1.1"
 assert_cmd = "2.0.12"
-predicates = "3.0.3"
+predicates = "3.0.4"
