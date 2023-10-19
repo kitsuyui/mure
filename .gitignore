@@ -102,6 +102,6 @@ Cargo.lock
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
 # -----------------------------------------------------------------------------
-'coverage.lcov'
+coverage.lcov
 # -----------------------------------------------------------------------------
-'.env'
+.env
