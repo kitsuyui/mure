@@ -393,7 +393,13 @@ mod tests {
                 let Error::Raw(raw) = err else {
                     unreachable!();
                 };
-                assert_eq!(raw.stderr, "error: branch 'feature' not found.\n");
+                // Error message depends on git version. Sometimes it has a period at the end of the sentence and sometimes not.
+                // https://github.com/git/git/commit/12b99928c8fc85a2500f34ef4f492b427b13f088
+                // TODO: more plumbing commands should be used to avoid this kind of problem (git branch -d is porcelain command)
+                assert!(
+                    raw.stderr == "error: branch 'feature' not found.\n"  // After v2.43.0
+                        || raw.stderr == "error: branch 'feature' not found\n"
+                )
             }
             _ => unreachable!(),
         }
