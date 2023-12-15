@@ -264,9 +264,9 @@ dependencies = [
 
 [[package]]
 name = "codecov-cache"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "002d0e3611809b048b2b335521158dabdd83b17746d972c22a639dea9319dea9"
+checksum = "0e38762849eea486d149b5c5d6d6dac4d643e850faf4757bb81beb5b9e242678"
 dependencies = [
  "codecov",
  "dirs",
