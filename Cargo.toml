@@ -27,7 +27,7 @@ openssl-probe = "0.1.5"
 clap_complete = "4.4.7"
 serde_json = "1.0.111"
 codecov = "0.4.0"
-codecov-cache = "0.1.2"
+codecov-cache = "0.2.0"
 dirs = "5.0.1"
 
 [dependencies.openssl]
