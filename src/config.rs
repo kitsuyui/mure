@@ -22,6 +22,7 @@ pub struct Config {
 #[derive(Serialize, Deserialize)]
 pub struct Core {
     pub base_dir: String,
+    pub editor: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -111,6 +112,7 @@ fn create_config(path: &Path) -> Result<Config, Error> {
     let config = Config {
         core: Core {
             base_dir: "~/.dev".to_string(),
+            editor: None,
         },
         github: GitHub {
             username: "".to_string(),
@@ -156,10 +158,27 @@ impl From<toml::ser::Error> for Error {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use assay::assay;
     use mktemp::Temp;
+
+    pub fn get_test_config() -> Config {
+        Config {
+            core: Core {
+                base_dir: "~/.dev".to_string(),
+                editor: Some("great_editor".to_string()),
+            },
+            github: GitHub {
+                username: "".to_string(),
+                query: None,
+                queries: Some(vec![]),
+            },
+            shell: Some(Shell {
+                cd_shims: Some("mucd".to_string()),
+            }),
+        }
+    }
 
     #[test]
     fn test_resolve_config_path() {
