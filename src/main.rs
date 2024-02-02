@@ -69,6 +69,10 @@ fn main() -> Result<(), mure_error::Error> {
             Ok(_) => (),
             Err(e) => println!("{e}"),
         },
+        Edit { name } => match app::edit::edit(&config, name) {
+            Ok(_) => (),
+            Err(e) => println!("{e}"),
+        },
     }
     Ok(())
 }
@@ -146,6 +150,11 @@ enum Commands {
         full: bool,
         #[arg(short, long, help = "show path")]
         path: bool,
+    },
+    #[command(about = "edit repository")]
+    Edit {
+        #[arg(index = 1, help = "repository name")]
+        name: String,
     },
 }
 

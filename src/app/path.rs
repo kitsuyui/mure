@@ -40,6 +40,7 @@ mod tests {
         let config = Config {
             core: Core {
                 base_dir: temp.as_path().to_str().unwrap().to_string(),
+                editor: None,
             },
             github: GitHub {
                 username: "".to_string(),
@@ -71,6 +72,7 @@ mod tests {
         let config = Config {
             core: Core {
                 base_dir: "".to_string(),
+                editor: None,
             },
             github: GitHub {
                 username: "".to_string(),
