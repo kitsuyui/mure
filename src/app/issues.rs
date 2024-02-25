@@ -4,7 +4,7 @@ use crate::github;
 use crate::github::api::search_repository_query::SearchRepositoryQueryReposEdgesNodeOnRepository;
 use crate::mure_error::Error;
 
-pub fn show_issues_main(config: &Config, queries: &Vec<String>) -> Result<(), Error> {
+pub fn show_issues_main(config: &Config, queries: &[String]) -> Result<(), Error> {
     let queries = if queries.is_empty() {
         if config.github.is_both_query_and_queries_set() {
             return Err(Error::from_str(
@@ -13,7 +13,7 @@ pub fn show_issues_main(config: &Config, queries: &Vec<String>) -> Result<(), Er
         }
         config.github.get_queries()
     } else {
-        queries.clone()
+        queries.to_vec()
     };
     let username = config.github.username.to_string();
     match show_issues(&username, &queries) {
