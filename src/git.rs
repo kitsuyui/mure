@@ -155,7 +155,6 @@ impl From<FromUtf8Error> for mure_error::Error {
 
 fn split_lines(lines: &str) -> Vec<String> {
     lines
-        .to_string()
         .split('\n')
         .map(|s| s.to_string())
         .filter(|s| !s.is_empty())
