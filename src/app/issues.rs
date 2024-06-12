@@ -136,13 +136,9 @@ pub fn repository_summary(
 }
 
 pub fn show_issues(username: &str, queries: &Vec<String>) -> Result<(), Error> {
-    let token = match std::env::var("GH_TOKEN") {
-        Ok(token) => token,
-        Err(_) => {
-            return Err(Error::from_str("GH_TOKEN is not set"));
-        }
+    let Ok(token) = github::token::get_github_token() else {
+        return Err(Error::from_str("GH_TOKEN is not set"));
     };
-
     match github::api::search_all_repositories_by_queries(&token, queries) {
         Err(e) => println!("{e}"),
         Ok(result) => {

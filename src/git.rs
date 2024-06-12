@@ -16,6 +16,7 @@ pub trait RepositorySupport {
     fn clone(url: &str, into: &Path) -> Result<GitCommandOutput<()>, Error>;
     fn has_unsaved(&self) -> Result<bool, mure_error::Error>;
     fn is_remote_exists(&self) -> Result<bool, mure_error::Error>;
+    #[allow(dead_code)]
     fn get_current_branch(&self) -> Result<String, mure_error::Error>;
     fn pull_fast_forwarded(
         &self,
