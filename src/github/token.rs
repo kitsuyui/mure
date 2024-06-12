@@ -2,7 +2,7 @@ use crate::mure_error::Error;
 
 pub fn get_github_token() -> Result<String, Error> {
     match std::env::var("GH_TOKEN") {
-        Ok(token) if token.len() > 0 => Ok(token),
+        Ok(token) if !token.is_empty() => Ok(token),
         _ => Err(Error::from_str("GH_TOKEN is not set")),
     }
 }
