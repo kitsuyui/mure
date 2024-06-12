@@ -1,3 +1,5 @@
+use std::cmp::Reverse;
+
 use crate::codecov::{get_repository_coverage, Coverage, RepoBranch};
 use crate::config::Config;
 use crate::github;
@@ -31,6 +33,14 @@ pub struct RepositorySummary {
 impl RepositorySummary {
     pub fn new(github: GitHubRepoSummary, codecov: Option<Coverage>) -> RepositorySummary {
         RepositorySummary { github, codecov }
+    }
+
+    fn number_of_pull_requests(&self) -> i64 {
+        self.github.number_of_pull_requests
+    }
+
+    fn number_of_issues(&self) -> i64 {
+        self.github.number_of_issues
     }
 
     fn coverage_text(&self) -> String {
@@ -132,17 +142,21 @@ pub fn repository_summary(
         let summary = RepositorySummary::new(gh_summary, cov_summary);
         results.push(summary);
     }
+
+    results.sort_by_key(|r| {
+        (
+            Reverse(r.number_of_pull_requests()),
+            Reverse(r.number_of_issues()),
+        )
+    });
+
     Ok(results)
 }
 
 pub fn show_issues(username: &str, queries: &Vec<String>) -> Result<(), Error> {
-    let token = match std::env::var("GH_TOKEN") {
-        Ok(token) => token,
-        Err(_) => {
-            return Err(Error::from_str("GH_TOKEN is not set"));
-        }
+    let Ok(token) = github::token::get_github_token() else {
+        return Err(Error::from_str("GH_TOKEN is not set"));
     };
-
     match github::api::search_all_repositories_by_queries(&token, queries) {
         Err(e) => println!("{e}"),
         Ok(result) => {
