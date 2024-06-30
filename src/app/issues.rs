@@ -63,6 +63,7 @@ impl RepositorySummary {
 
 pub struct GitHubRepoSummary {
     // | "\(.issues.totalCount)\t\(.pullRequests.totalCount)\t\(.defaultBranchRef.name)\t\(.url)"'
+    #[allow(dead_code)]
     pub name: String,
     pub number_of_issues: i64,
     pub number_of_pull_requests: i64,
