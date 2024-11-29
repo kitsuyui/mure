@@ -93,12 +93,29 @@ fn search_repositories(
     let client = reqwest::blocking::Client::new();
     let url = "https://api.github.com/graphql";
     let bearer = format!("bearer {token}");
+
+    // Set timeout to 10 seconds.
+    // I don't know the best value for timeout. But 10 seconds is the upper limit of REST API.
+    // GraphQL API has a rate limit but it is complicated to calculate in the code.
+    // https://docs.github.com/en/rest/using-the-rest-api/troubleshooting-the-rest-api?apiVersion=2022-11-28#timeouts
+    // https://docs.github.com/en/graphql/overview/rate-limits-and-node-limits-for-the-graphql-api
+    let timeout = std::time::Duration::from_secs(10);
+
     let res = client
         .post(url)
         .header("Authorization", bearer)
         .header("User-Agent", "mure")
+        .timeout(timeout)
         .json(&request_body)
         .send()?;
+
+    if !res.status().is_success() {
+        let status = res.status();
+        let text = res.text()?;
+        return Err(Error::from_str(&format!(
+            "Failed to search repositories: status: {status}, text: {text}"
+        )));
+    }
     let response_body: Response<search_repository_query::ResponseData> = res.json()?;
     match response_body.data {
         Some(data) => Ok(data),
