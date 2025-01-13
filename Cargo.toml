@@ -28,7 +28,7 @@ clap_complete = "4.5.2"
 serde_json = "1.0.116"
 codecov = "0.4.0"
 codecov-cache = "0.2.0"
-dirs = "5.0.1"
+dirs = "6.0.0"
 
 [dependencies.openssl]
 version = "0.10.64"
