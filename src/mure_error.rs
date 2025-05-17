@@ -8,7 +8,6 @@ pub enum Error {
     Message(String),
     GitCommandError(String),
     GHCommandError(String),
-    CodecovError(String),
 }
 
 impl Error {
@@ -20,7 +19,6 @@ impl Error {
             Error::Message(message) => message.to_string(),
             Error::GitCommandError(message) => message.to_string(),
             Error::GHCommandError(message) => message.to_string(),
-            Error::CodecovError(message) => message.to_string(),
         }
     }
 }
@@ -46,17 +44,5 @@ impl From<io::Error> for Error {
 impl From<crate::misc::command_wrapper::Error> for Error {
     fn from(e: crate::misc::command_wrapper::Error) -> Error {
         Error::GitCommandError(e.to_string())
-    }
-}
-
-impl From<codecov::errors::Error> for Error {
-    fn from(e: codecov::errors::Error) -> Error {
-        Error::CodecovError(format!("{:?}", e))
-    }
-}
-
-impl From<codecov_cache::errors::Error> for Error {
-    fn from(e: codecov_cache::errors::Error) -> Error {
-        Error::CodecovError(format!("{:?}", e))
     }
 }
