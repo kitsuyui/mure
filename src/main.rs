@@ -5,7 +5,6 @@ use verbosity::Verbosity;
 use Commands::*;
 
 mod app;
-mod codecov;
 mod config;
 mod gh;
 mod git;

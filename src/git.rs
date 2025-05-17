@@ -133,8 +133,7 @@ impl RepositorySupport for Repository {
 
     fn command(&self, args: &[&str]) -> Result<RawCommandOutput, Error> {
         let Some(workdir) = self.workdir() else {
-            return Err(Error::FailedToExecute(std::io::Error::new(
-                std::io::ErrorKind::Other,
+            return Err(Error::FailedToExecute(std::io::Error::other(
                 "workdir is not found",
             )));
         };
