@@ -149,10 +149,7 @@ fn github_api_request_with_retry<T: serde::Serialize, S: serde::de::DeserializeO
                     match S::deserialize(data) {
                         Ok(deserialized) => return Ok(deserialized),
                         Err(err) => {
-                            return Err(Error::from_str(&format!(
-                                "{:?}: {:?}",
-                                err, response_text
-                            )));
+                            return Err(Error::from_str(&format!("{err:?}: {response_text:?}")));
                         }
                     }
                 }
