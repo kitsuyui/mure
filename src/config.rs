@@ -196,7 +196,6 @@ pub mod tests {
         ]
       )]
     fn test_env_mure_config_path() {
-        std::env::set_var("MURE_CONFIG_PATH", "/tmp/mure.toml");
         match resolve_config_path() {
             Ok(path) => assert_eq!(path.to_str().unwrap(), "/tmp/mure.toml"),
             Err(err) => unreachable!("{:?}", err),
