@@ -1,4 +1,4 @@
-use crate::config::{get_config, initialize_config, Config};
+use crate::config::{Config, get_config, initialize_config};
 use crate::mure_error::Error;
 
 pub fn init() -> Result<Config, Error> {

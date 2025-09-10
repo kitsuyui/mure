@@ -1,8 +1,8 @@
 use crate::app::{issues::show_issues_main, refresh::refresh_main};
-use clap::{command, ArgGroup, CommandFactory, Parser, Subcommand};
-use clap_complete::{generate, Shell};
-use verbosity::Verbosity;
 use Commands::*;
+use clap::{ArgGroup, CommandFactory, Parser, Subcommand, command};
+use clap_complete::{Shell, generate};
+use verbosity::Verbosity;
 
 mod app;
 mod config;

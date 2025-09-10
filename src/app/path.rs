@@ -61,10 +61,12 @@ mod tests {
         // test_repo2 not exist
         let path2 = resolve(&config, "test_repo2");
         assert!(path2.is_err());
-        assert!(path2
-            .unwrap_err()
-            .to_string()
-            .ends_with("test_repo2 is not a git repository"));
+        assert!(
+            path2
+                .unwrap_err()
+                .to_string()
+                .ends_with("test_repo2 is not a git repository")
+        );
     }
 
     #[test]

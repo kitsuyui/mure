@@ -243,9 +243,10 @@ mod tests {
             .expect("failed to set remote url");
 
         // now remote must be set
-        assert!(repo
-            .is_remote_exists()
-            .expect("failed to check remote exists"));
+        assert!(
+            repo.is_remote_exists()
+                .expect("failed to check remote exists")
+        );
     }
 
     #[test]
