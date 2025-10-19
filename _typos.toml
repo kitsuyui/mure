@@ -1,0 +1,7 @@
+# typos is a Source code spell checker
+# https://github.com/crate-ci/typos
+[default.extend-words]
+# "releast" may be a typo for "release",
+# but since the term "releast" is used in https://docs.github.com/en/graphql/overview/public-schema,
+# Exclude it from typos detection.
+releast = "releast"
