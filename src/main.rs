@@ -1,6 +1,6 @@
 use crate::app::{issues::show_issues_main, refresh::refresh_main};
 use Commands::*;
-use clap::{ArgGroup, CommandFactory, Parser, Subcommand, command};
+use clap::{ArgGroup, CommandFactory, Parser, Subcommand};
 use clap_complete::{Shell, generate};
 use verbosity::Verbosity;
 
