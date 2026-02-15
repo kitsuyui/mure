@@ -23,43 +23,18 @@ jobs:
         include:
           - arch: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-          - arch: x86_64-unknown-linux-musl
-            os: ubuntu-latest
-            package: musl-tools
           - arch: aarch64-unknown-linux-gnu
             os: ubuntu-latest
             package: gcc-aarch64-linux-gnu
             gcc: aarch64-linux-gnu-gcc
-          - arch: aarch64-unknown-linux-musl
-            # https://github.com/kitsuyui/mure/issues/615
-            os: ubuntu-22.04
-            package: gcc-aarch64-linux-gnu musl-tools
-            gcc: aarch64-linux-gnu-gcc
-            cflags: -U_FORTIFY_SOURCE
           - arch: armv7-unknown-linux-gnueabihf
             os: ubuntu-latest
             package: gcc-arm-linux-gnueabihf
             gcc: arm-linux-gnueabihf-gcc
-          - arch: armv7-unknown-linux-musleabihf
-            # https://github.com/kitsuyui/mure/issues/615
-            os: ubuntu-22.04
-            package: gcc-arm-linux-gnueabihf musl-tools
-            gcc: arm-linux-gnueabihf-gcc
-            cflags: -U_FORTIFY_SOURCE
           - arch: arm-unknown-linux-gnueabihf
             os: ubuntu-latest
             package: gcc-arm-linux-gnueabihf
             gcc: arm-linux-gnueabihf-gcc
-          # - arch: arm-unknown-linux-musleabihf
-          #   os: ubuntu-latest
-          #   package: gcc-arm-linux-gnueabihf musl-tools
-          #   cflags: -U_FORTIFY_SOURCE
-          #   gcc: arm-linux-gnueabihf-gcc
-          # unresolved import `std::os::unix`
-          # `std::os::unix` is not available on Windows. I think there is a simple solution. I will not release Windows version until it is ready.
-          # - arch: x86_64-pc-windows-gnu
-          #   os: ubuntu-latest
-          #   package: gcc-mingw-w64-x86-64
           - arch: x86_64-apple-darwin
             os: macos-latest
           - arch: aarch64-apple-darwin
