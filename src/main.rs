@@ -167,16 +167,7 @@ mod tests {
     #[test]
     fn test_help() {
         let assert = Command::new("cargo")
-            .args(vec![
-                "llvm-cov",
-                "--lcov",
-                "--output-path",
-                "coverage.lcov",
-                "--no-report",
-                "run",
-                "--",
-                "--help",
-            ])
+            .args(vec!["run", "--", "--help"])
             .assert();
         assert.success().stdout(predicate::str::contains("Usage:"));
     }
@@ -184,17 +175,7 @@ mod tests {
     #[test]
     fn test_init_shell() {
         let assert = Command::new("cargo")
-            .args(vec![
-                "llvm-cov",
-                "--lcov",
-                "--output-path",
-                "coverage.lcov",
-                "--no-report",
-                "run",
-                "--",
-                "init",
-                "--shell",
-            ])
+            .args(vec!["run", "--", "init", "--shell"])
             .assert();
         assert
             .success()
@@ -207,16 +188,7 @@ mod tests {
         let mure_config_path = temp_dir.as_path().join(".mure.toml");
         let assert = Command::new("cargo")
             .env("MURE_CONFIG_PATH", mure_config_path)
-            .args(vec![
-                "llvm-cov",
-                "--lcov",
-                "--output-path",
-                "coverage.lcov",
-                "--no-report",
-                "run",
-                "--",
-                "init",
-            ])
+            .args(vec!["run", "--", "init"])
             .assert();
         assert.success().stdout(
             predicate::str::contains("Initialized config file")
@@ -246,17 +218,7 @@ cd_shims = "mucd"
         std::fs::write(&mure_config_path, content).unwrap();
         let assert = Command::new("cargo")
             .env("MURE_CONFIG_PATH", mure_config_path)
-            .args(vec![
-                "llvm-cov",
-                "--lcov",
-                "--output-path",
-                "coverage.lcov",
-                "--no-report",
-                "run",
-                "--",
-                "refresh",
-                "--all",
-            ])
+            .args(vec!["run", "--", "refresh", "--all"])
             .assert();
         assert.success();
         drop(temp_dir);
@@ -285,11 +247,6 @@ cd_shims = "mucd"
         let assert = Command::new("cargo")
             .env("MURE_CONFIG_PATH", &mure_config_path)
             .args(vec![
-                "llvm-cov",
-                "--lcov",
-                "--output-path",
-                "coverage.lcov",
-                "--no-report",
                 "run",
                 "--",
                 "clone",
@@ -300,17 +257,7 @@ cd_shims = "mucd"
 
         let assert = Command::new("cargo")
             .env("MURE_CONFIG_PATH", &mure_config_path)
-            .args(vec![
-                "llvm-cov",
-                "--lcov",
-                "--output-path",
-                "coverage.lcov",
-                "--no-report",
-                "run",
-                "--",
-                "refresh",
-                "mure",
-            ])
+            .args(vec!["run", "--", "refresh", "mure"])
             .assert();
         assert.success();
 
@@ -320,36 +267,14 @@ cd_shims = "mucd"
     #[test]
     fn test_completion() {
         let assert = Command::new("cargo")
-            .args(vec![
-                "llvm-cov",
-                "--lcov",
-                "--output-path",
-                "coverage.lcov",
-                "--no-report",
-                "run",
-                "--",
-                "completion",
-                "--shell",
-                "bash",
-            ])
+            .args(vec!["run", "--", "completion", "--shell", "bash"])
             .assert();
         assert
             .success()
             .stdout(predicate::str::contains("complete -F _mure"));
 
         let assert = Command::new("cargo")
-            .args(vec![
-                "llvm-cov",
-                "--lcov",
-                "--output-path",
-                "coverage.lcov",
-                "--no-report",
-                "run",
-                "--",
-                "completion",
-                "--shell",
-                "zsh",
-            ])
+            .args(vec!["run", "--", "completion", "--shell", "zsh"])
             .assert();
         assert
             .success()
