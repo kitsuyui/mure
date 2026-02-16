@@ -1,10 +1,6 @@
 # mure
 
-<<<<<<< Updated upstream
-=======
 ![Coverage](https://raw.githubusercontent.com/kitsuyui/octocov-central/main/badges/kitsuyui/mure/coverage.svg)
-
->>>>>>> Stashed changes
 A command line tool for creating and managing multiple repositories.
 
 ## Installation
