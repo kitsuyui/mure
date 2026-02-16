@@ -1,7 +1,5 @@
 # mure
 
-[![codecov](https://codecov.io/gh/kitsuyui/mure/branch/main/graph/badge.svg?token=PPS40CYIYA)](https://codecov.io/gh/kitsuyui/mure)
-
 A command line tool for creating and managing multiple repositories.
 
 ## Installation
@@ -12,12 +10,11 @@ cargo install mure
 
 ## Environment variables
 
-This application requires two environment variables.
+This application requires the following environment variable.
 
 - `GH_TOKEN`
-- `CODECOV_TOKEN`
 
-`GH_TOKEN` is GitHub access token. `CODECOV_TOKEN` is Codecov access token.
+`GH_TOKEN` is GitHub access token.
 
 (I haven't set it up to automatically read the contents of .env yet.)
 
