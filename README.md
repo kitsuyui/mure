@@ -117,11 +117,20 @@ You can change the name of the shim by set `shell.cd_shims` in `.mure.toml` to a
 
 ### Setup shell completion
 
+For zsh, load completions after `compinit`.
+
 ```sh
-mkdir -p ~/.zfunc
-mure completion --shell zsh > ~/.zfunc/_mure
-autoload -Uz compinit && compinit
+autoload -Uz compinit
+compinit
+
+# mure subcommands
+eval "$(mure completion --shell zsh)"
+
+# mucd target completion (dynamic)
+eval "$(mure completion --shell zsh --cd)"
 ```
+
+`mure completion --shell <shell>` also supports other shells such as `bash`, `fish`, `powershell`, and `elvish`.
 
 ## License
 
