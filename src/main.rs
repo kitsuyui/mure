@@ -146,7 +146,10 @@ fn try_dynamic_completion() -> Result<bool, mure_error::Error> {
     Ok(handled)
 }
 
-fn generate_mucd_dynamic_completion(shell: Shell, shim_name: &str) -> Result<(), mure_error::Error> {
+fn generate_mucd_dynamic_completion(
+    shell: Shell,
+    shim_name: &str,
+) -> Result<(), mure_error::Error> {
     let env_shell: &dyn EnvCompleter = match shell {
         Shell::Bash => &EnvBash,
         Shell::Elvish => &EnvElvish,
@@ -161,7 +164,13 @@ fn generate_mucd_dynamic_completion(shell: Shell, shim_name: &str) -> Result<(),
     };
 
     env_shell
-        .write_registration("COMPLETE", "mucd", shim_name, "mure", &mut std::io::stdout())
+        .write_registration(
+            "COMPLETE",
+            "mucd",
+            shim_name,
+            "mure",
+            &mut std::io::stdout(),
+        )
         .map_err(|e| mure_error::Error::from_str(e.to_string().as_str()))
 }
 
@@ -182,10 +191,7 @@ fn mucd_target_completer(current: &OsStr) -> Vec<CompletionCandidate> {
 
     names.sort();
     names.dedup();
-    names
-        .into_iter()
-        .map(CompletionCandidate::new)
-        .collect()
+    names.into_iter().map(CompletionCandidate::new).collect()
 }
 
 #[derive(Parser, Debug, Clone)]
@@ -439,7 +445,8 @@ cd_shims = "mucd"
         )
         .expect("failed to create repo store parent");
         git2::Repository::init(&repo_store_path).expect("failed to initialize git repository");
-        symlink(&repo_store_path, base_dir.as_path().join("mure")).expect("failed to create symlink");
+        symlink(&repo_store_path, base_dir.as_path().join("mure"))
+            .expect("failed to create symlink");
 
         let content = format!(
             r#"
@@ -465,9 +472,7 @@ cd_shims = "mucd"
             .env("_CLAP_IFS", "\n")
             .args(vec!["run", "--", "--", "mucd", "mu"])
             .assert();
-        assert
-            .success()
-            .stdout(predicate::str::contains("mure"));
+        assert.success().stdout(predicate::str::contains("mure"));
     }
 
     #[test]
