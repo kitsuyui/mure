@@ -69,23 +69,17 @@ fn main() -> Result<(), mure_error::Error> {
             verbose,
         } => {
             let verbosity = Verbosity::from_bools(quiet, verbose);
-            match app::clone::clone(&config, &url, verbosity) {
-                Ok(_) => (),
-                Err(e) => println!("{e}"),
-            }
+            app::clone::clone(&config, &url, verbosity)?;
         }
-        Path { name } => match app::path::path(&config, &name) {
-            Ok(_) => (),
-            Err(e) => println!("{e}"),
-        },
-        List { path, full } => match app::list::list(&config, path, full) {
-            Ok(_) => (),
-            Err(e) => println!("{e}"),
-        },
-        Edit { name } => match app::edit::edit(&config, name) {
-            Ok(_) => (),
-            Err(e) => println!("{e}"),
-        },
+        Path { name } => {
+            app::path::path(&config, &name)?;
+        }
+        List { path, full } => {
+            app::list::list(&config, path, full)?;
+        }
+        Edit { name } => {
+            app::edit::edit(&config, name)?;
+        }
     }
     Ok(())
 }
@@ -359,6 +353,36 @@ cd_shims = "mucd"
             .args(vec!["run", "--", "refresh", "--all"])
             .assert();
         assert.success();
+        drop(temp_dir);
+        drop(base_dir);
+    }
+
+    #[test]
+    fn test_path_error_exits_with_failure() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+        let mure_config_path = temp_dir.as_path().join(".mure.toml");
+        let base_dir = Temp::new_dir().expect("failed to create temp dir");
+        let content = format!(
+            r#"
+[core]
+base_dir = "{}"
+
+[github]
+username = "kitsuyui"
+
+[shell]
+cd_shims = "mucd"
+"#,
+            base_dir.as_path().to_str().unwrap()
+        );
+        std::fs::write(&mure_config_path, content).unwrap();
+        let assert = Command::new("cargo")
+            .env("MURE_CONFIG_PATH", mure_config_path)
+            .args(vec!["run", "--", "path", "missing"])
+            .assert();
+        assert
+            .failure()
+            .stderr(predicate::str::contains("missing is not a git repository"));
         drop(temp_dir);
         drop(base_dir);
     }

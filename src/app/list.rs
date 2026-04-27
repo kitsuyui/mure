@@ -10,6 +10,7 @@ pub fn list(config: &Config, path: bool, full: bool) -> Result<(), Error> {
         println!("No repositories found");
         return Ok(());
     }
+    let mut first_error = None;
     for repo in repos {
         match repo {
             Ok(mure_repo) => {
@@ -35,10 +36,16 @@ pub fn list(config: &Config, path: bool, full: bool) -> Result<(), Error> {
             }
             Err(e) => {
                 println!("{}", e.message());
+                if first_error.is_none() {
+                    first_error = Some(e);
+                }
             }
         }
     }
-    Ok(())
+    match first_error {
+        Some(e) => Err(e),
+        None => Ok(()),
+    }
 }
 
 pub struct MureRepo {

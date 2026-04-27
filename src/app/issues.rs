@@ -16,11 +16,7 @@ pub fn show_issues_main(config: &Config, queries: &[String]) -> Result<(), Error
     } else {
         queries.to_vec()
     };
-    match show_issues(&queries) {
-        Ok(_) => (),
-        Err(e) => println!("{e}"),
-    }
-    Ok(())
+    show_issues(&queries)
 }
 
 pub struct RepositorySummary {
@@ -115,27 +111,19 @@ pub fn show_issues(queries: &Vec<String>) -> Result<(), Error> {
     let Ok(token) = github::token::get_github_token() else {
         return Err(Error::from_str("GH_TOKEN is not set"));
     };
-    match github::api::search_all_repositories_by_queries(&token, queries) {
-        Err(e) => println!("{e}"),
-        Ok(result) => {
-            match repository_summary(&result) {
-                Ok(results) => {
-                    // header
-                    println!("Issues\tPRs\tBranch\tLastRelease\tURL");
-                    for result in results {
-                        println!(
-                            "{}\t{}\t{}\t{}\t{}",
-                            result.github.number_of_issues,
-                            result.github.number_of_pull_requests,
-                            result.default_branch(),
-                            result.github.last_release_at,
-                            result.github.url,
-                        );
-                    }
-                }
-                Err(e) => println!("{e}"),
-            }
-        }
-    };
+    let result = github::api::search_all_repositories_by_queries(&token, queries)?;
+    let results = repository_summary(&result)?;
+    // header
+    println!("Issues\tPRs\tBranch\tLastRelease\tURL");
+    for result in results {
+        println!(
+            "{}\t{}\t{}\t{}\t{}",
+            result.github.number_of_issues,
+            result.github.number_of_pull_requests,
+            result.default_branch(),
+            result.github.last_release_at,
+            result.github.url,
+        );
+    }
     Ok(())
 }
