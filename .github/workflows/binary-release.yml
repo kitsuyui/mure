@@ -16,7 +16,6 @@ jobs:
       OS: ${{ matrix.os }}
       PACKAGE: ${{ matrix.package }}
       GCC: ${{ matrix.gcc }}
-      CFLAGS: ${{ matrix.cflags }}
     strategy:
       fail-fast: false
       matrix:
@@ -54,7 +53,7 @@ jobs:
           if [[ $OS =~ ^.*ubuntu.*$ ]]; then
             rustup target add $ARCH
             sudo apt-get update && sudo apt-get install -y $PACKAGE
-            TARGET="$ARCH" CFLAGS="$CFLAGS" CC=$GCC cargo build --release --verbose --target $ARCH
+            TARGET="$ARCH" CC=$GCC cargo build --release --verbose --target $ARCH
           elif [[ $OS =~ ^.*macos.*$ ]]; then
             cargo build --release --verbose --target $ARCH
           fi
