@@ -41,15 +41,9 @@ jobs:
       - run: cargo fmt --all -- --check
 
   actionlint:
-    name: Actionlint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version: stable
-      - run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck= .github/workflows/*.yml
-
+    uses: kitsuyui/gh-actions-workflows/.github/workflows/actionlint.yml@main
+    with:
+      shellcheck: disabled
   lint:
     name: Lint
     runs-on: ubuntu-latest
