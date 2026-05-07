@@ -41,14 +41,10 @@ impl GitHub {
         if let Some(q) = &self.query {
             return vec![q.to_string()];
         }
-        let default_query = format!(
+        vec![format!(
             "user:{} is:public fork:false archived:false",
             &self.username
-        );
-        match &self.query {
-            Some(q) => vec![q.to_string()],
-            None => vec![default_query],
-        }
+        )]
     }
     pub fn is_both_query_and_queries_set(&self) -> bool {
         self.query.is_some() && self.queries.is_some()
