@@ -35,7 +35,7 @@ pub fn clone(config: &Config, repo_url: &str, verbosity: Verbosity) -> Result<()
     let link_to = config.repo_work_path(&repo_info.domain, &repo_info.owner, &repo_info.repo);
     match unix_fs::symlink(tobe_clone, link_to) {
         Ok(_) => Ok(()),
-        Err(_) => Err(Error::from_str("failed to create symlink")),
+        Err(e) => Err(Error::from_str(&format!("failed to create symlink: {e}"))),
     }
 }
 
