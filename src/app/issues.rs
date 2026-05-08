@@ -85,11 +85,6 @@ impl GitHubRepoSummary {
 pub fn repository_summary(
     repos: &Vec<SearchRepositoryQueryReposEdgesNodeOnRepository>,
 ) -> Result<Vec<RepositorySummary>, Error> {
-    let mut results: Vec<GitHubRepoSummary> = Vec::new();
-    for repo in repos {
-        results.push(GitHubRepoSummary::new_from_api(repo));
-    }
-
     let mut results: Vec<RepositorySummary> = Vec::new();
     for repo in repos {
         let gh_summary = GitHubRepoSummary::new_from_api(repo);
