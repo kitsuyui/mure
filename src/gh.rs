@@ -28,7 +28,7 @@ pub fn get_default_branch(workdir: &PathBuf) -> Result<String, Error> {
     let Ok(message) = String::from_utf8(result.stdout) else {
         return Err(Error::from_str("failed to get default branch"));
     };
-    Ok(message)
+    Ok(message.trim().to_string())
 }
 
 #[cfg(test)]
