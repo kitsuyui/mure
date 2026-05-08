@@ -71,13 +71,10 @@ impl GitHubRepoSummary {
             last_release_at: repo
                 .latest_release
                 .as_ref()
-                .map(|release| {
-                    if let Some(content) = release.published_at.as_ref() {
-                        return content[..10].to_string();
-                    }
-                    "****-**-**".to_string()
-                })
-                .unwrap_or("****-**-**".to_string()),
+                .and_then(|release| release.published_at.as_ref())
+                .and_then(|content| content.get(..10))
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| "****-**-**".to_string()),
         }
     }
 }
