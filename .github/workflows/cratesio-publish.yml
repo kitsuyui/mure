@@ -12,6 +12,16 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+      - name: Validate release tag version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          package_version="$(cargo metadata --no-deps --format-version 1 | python3 -c 'import json, sys; print(json.load(sys.stdin)["packages"][0]["version"])')"
+          release_version="${GITHUB_REF_NAME#v}"
+          if [[ "$release_version" != "$package_version" ]]; then
+            echo "::error::Release tag $GITHUB_REF_NAME does not match Cargo.toml version $package_version"
+            exit 1
+          fi
       - run: cargo build --release --all-features
 
       - name: publish (dry-run)
