@@ -41,7 +41,7 @@ fn main() -> Result<(), mure_error::Error> {
                 println!("Initialized config file");
             }
             Err(e) => {
-                println!("{e}");
+                eprintln!("{e}");
             }
         },
         Completion { shell, cd: true } => {
@@ -322,10 +322,10 @@ mod tests {
             .env("MURE_CONFIG_PATH", mure_config_path)
             .args(vec!["run", "--", "init"])
             .assert();
-        assert.success().stdout(
-            predicate::str::contains("Initialized config file")
-                .or(predicate::str::contains("config file already exists")),
-        );
+        assert
+            .success()
+            .stdout(predicate::str::is_empty())
+            .stderr(predicate::str::contains("config file already exists"));
         drop(temp_dir);
     }
 

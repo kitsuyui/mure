@@ -31,7 +31,7 @@ pub fn refresh_main(
                     println!("{message}");
                 }
             }
-            Err(e) => println!("{e}"),
+            Err(e) => eprintln!("{e}"),
         }
     }
     Ok(())
@@ -100,12 +100,12 @@ pub fn refresh_all(config: &Config, verbosity: Verbosity) -> Result<(), Error> {
                         }
                     },
                     Err(e) => {
-                        println!("{}", e.message());
+                        eprintln!("{}", e.message());
                     }
                 }
             }
             Err(e) => {
-                println!("{}", e.message());
+                eprintln!("{}", e.message());
             }
         }
     }
