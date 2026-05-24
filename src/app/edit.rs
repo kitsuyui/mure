@@ -15,6 +15,9 @@ pub fn edit(config: &Config, repository: String) -> Result<(), Error> {
 }
 
 pub fn open_editor(editor: &str, path: &PathBuf) -> Result<(), Error> {
+    if editor.is_empty() {
+        return Err(Error::from_str("No editor found"));
+    }
     // editor is not only a command name but also can have arguments, so first separate the arguments
     // maybe we can use shlex crate to parse the command and arguments
     let mut editor_args = editor.split_whitespace();
@@ -52,7 +55,9 @@ fn get_editor(config: &Config, path: &PathBuf) -> Result<String, Error> {
 }
 
 fn get_editor_from_config(config: &Config) -> Result<String, Error> {
-    if let Some(editor) = config.core.editor.as_ref() {
+    if let Some(editor) = config.core.editor.as_ref()
+        && !editor.is_empty()
+    {
         return Ok(editor.to_string());
     }
     Err(Error::from_str("No editor found"))
@@ -126,5 +131,22 @@ mod tests {
         std::fs::write(&path, "test_dir").unwrap();
         let result = open_editor("test", &path);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_open_editor_empty_string_returns_error() {
+        let temp = mktemp::Temp::new_dir().unwrap();
+        let path = temp.as_path().join("test_dir");
+        let result = open_editor("", &path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_get_editor_from_config_empty_string_falls_through() {
+        use crate::config::tests::get_test_config;
+        let mut config = get_test_config();
+        config.core.editor = Some("".to_string());
+        let result = get_editor_from_config(&config);
+        assert!(result.is_err());
     }
 }
