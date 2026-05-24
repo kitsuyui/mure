@@ -1,4 +1,4 @@
-use crate::misc::command_wrapper::{CommandOutput as GitCommandOutput, Error, RawCommandOutput};
+use crate::command_wrapper::{CommandOutput as GitCommandOutput, Error, RawCommandOutput};
 use crate::mure_error;
 use git2::{BranchType, Repository};
 use std::{path::Path, process::Command, string::FromUtf8Error};

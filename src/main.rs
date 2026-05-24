@@ -11,11 +11,11 @@ use std::ffi::{OsStr, OsString};
 use verbosity::Verbosity;
 
 mod app;
+mod command_wrapper;
 mod config;
 mod gh;
 mod git;
 mod github;
-mod misc;
 mod mure_error;
 mod verbosity;
 
