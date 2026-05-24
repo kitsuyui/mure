@@ -75,8 +75,8 @@ impl ConfigSupport for Config {
     fn repo_store_path(&self, domain: &str, owner: &str, repo: &str) -> PathBuf {
         self.repos_store_path().join(domain).join(owner).join(repo)
     }
-    fn repo_work_path(&self, _domain: &str, _owner: &str, repo: &str) -> PathBuf {
-        self.base_path().join(repo)
+    fn repo_work_path(&self, domain: &str, owner: &str, repo: &str) -> PathBuf {
+        self.base_path().join(domain).join(owner).join(repo)
     }
     fn resolve_cd_shims(&self) -> String {
         let default = "mucd".to_string();
@@ -215,6 +215,19 @@ pub mod tests {
         .unwrap();
         assert!(config.core.base_dir == "~/.dev");
         assert_eq!(config.github.username, "kitsuyui");
+    }
+
+    #[test]
+    fn test_repo_work_path_includes_domain_owner_and_repo() {
+        let config = get_test_config();
+        assert_eq!(
+            config.repo_work_path("github.com", "kitsuyui", "mure"),
+            config
+                .base_path()
+                .join("github.com")
+                .join("kitsuyui")
+                .join("mure")
+        );
     }
 
     #[test]

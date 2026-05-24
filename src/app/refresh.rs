@@ -22,7 +22,9 @@ pub fn refresh_main(
         // If no repository is specified, use the current directory
         let repo_path = get_git_repository_from_current_dir(config)?;
         let repo_path = match repository {
-            Some(repo) => repo,
+            Some(repo) => crate::app::path::resolve(config, &repo)?
+                .to_string_lossy()
+                .to_string(),
             None => repo_path.to_string_lossy().to_string(),
         };
         match refresh(&repo_path, verbosity) {

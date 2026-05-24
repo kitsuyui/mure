@@ -3,12 +3,11 @@ use std::path::PathBuf;
 
 use git2::Repository;
 
-use crate::config::{Config, ConfigSupport};
+use crate::config::Config;
 use crate::mure_error::Error;
 
 pub fn edit(config: &Config, repository: String) -> Result<(), Error> {
-    let mure_root_dir = config.base_path();
-    let path = mure_root_dir.join(repository);
+    let path = crate::app::path::resolve(config, &repository)?;
     let editor = get_editor(config, &path)?;
     open_editor(&editor, &path)?;
     Ok(())

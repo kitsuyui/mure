@@ -17,14 +17,12 @@ fn shell_shims_for_cd_directly(bin_name: &str, fn_name: &str) -> String {
     format!("function {fn_name}() {{ local p=$({bin_name} path \"$1\") && cd \"$p\" }}\n")
 }
 
-fn resolve(config: &Config, name: &str) -> Result<PathBuf, Error> {
+pub(crate) fn resolve(config: &Config, name: &str) -> Result<PathBuf, Error> {
     let path_ = config.base_path().join(name);
     if path_.is_dir() && path_.exists() {
         return Ok(path_);
     }
-    Err(Error::from_str(
-        format!("{} is not a git repository", path_.display()).as_str(),
-    ))
+    crate::app::list::find_mure_repo(config, name).map(|repo| repo.relative_path)
 }
 
 #[cfg(test)]
@@ -67,6 +65,33 @@ mod tests {
                 .to_string()
                 .ends_with("test_repo2 is not a git repository")
         );
+    }
+
+    #[test]
+    fn test_resolve_path_finds_nested_work_symlink() {
+        let temp = Temp::new_dir().unwrap();
+        let config = Config {
+            core: Core {
+                base_dir: temp.as_path().to_str().unwrap().to_string(),
+                editor: None,
+            },
+            github: GitHub {
+                username: "".to_string(),
+                query: None,
+                queries: None,
+            },
+            shell: Some(Shell {
+                cd_shims: Some("mucd".to_string()),
+            }),
+        };
+        let store = config.repo_store_path("github.com", "owner", "test_repo");
+        std::fs::create_dir_all(store.parent().unwrap()).unwrap();
+        git2::Repository::init(&store).unwrap();
+        let work = config.repo_work_path("github.com", "owner", "test_repo");
+        std::fs::create_dir_all(work.parent().unwrap()).unwrap();
+        std::os::unix::fs::symlink(store, &work).unwrap();
+
+        assert_eq!(resolve(&config, "test_repo").unwrap(), work);
     }
 
     #[test]

@@ -27,9 +27,11 @@ This application requires the following environment variable.
 $HOME/.mure.toml ... configuration file
 $HOME/.dev ... development directory
 $HOME/.dev/repo ... repositories directory
+$HOME/.dev/github.com/{owner}/{repo} ... working repository symlink
 ```
 
-When you clone a repository, it will be clone into the `$HOME/.dev/repo/github.com/{owner}/{repo}` directory.
+When you clone a repository, it will be cloned into the `$HOME/.dev/repo/github.com/{owner}/{repo}` directory.
+It also creates a symlink at `$HOME/.dev/github.com/{owner}/{repo}` for daily work.
 
 ## requirements
 
@@ -105,7 +107,7 @@ queries = [
 mucd enables you to change directory into the repository.
 
 ```shell
-mucd something  # => Same as `cd $HOME/.dev/something`
+mucd something  # => Same as `cd "$(mure path something)"`
 ```
 
 You can change the name of the shim by set `shell.cd_shims` in `.mure.toml` to another name.
