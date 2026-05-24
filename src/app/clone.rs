@@ -24,10 +24,10 @@ pub fn clone(config: &Config, repo_url: &str, verbosity: Verbosity) -> Result<()
     match verbosity {
         Verbosity::Quiet => (),
         Verbosity::Normal => {
-            println!("{}", result.raw.stderr);
+            eprintln!("{}", result.raw.stderr);
         }
         Verbosity::Verbose => {
-            println!("{}", result.raw.stderr);
+            eprintln!("{}", result.raw.stderr);
             println!("{}", result.raw.stdout);
         }
     }

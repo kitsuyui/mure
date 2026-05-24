@@ -35,7 +35,7 @@ pub fn list(config: &Config, path: bool, full: bool) -> Result<(), Error> {
                 }
             }
             Err(e) => {
-                println!("{}", e.message());
+                eprintln!("{}", e.message());
                 if first_error.is_none() {
                     first_error = Some(e);
                 }
