@@ -78,6 +78,12 @@ pub fn search_mure_repo(config: &Config) -> Vec<Result<MureRepo, Error>> {
             repos.push(Err(Error::from_str("failed to read dir")));
         }
     }
+    repos.sort_by(|a, b| match (a, b) {
+        (Ok(a), Ok(b)) => a.relative_path.cmp(&b.relative_path),
+        (Ok(_), Err(_)) => std::cmp::Ordering::Less,
+        (Err(_), Ok(_)) => std::cmp::Ordering::Greater,
+        (Err(_), Err(_)) => std::cmp::Ordering::Equal,
+    });
     repos
 }
 
