@@ -7,12 +7,7 @@ use crate::mure_error::Error;
 
 pub fn show_issues_main(config: &Config, queries: &[String]) -> Result<(), Error> {
     let queries = if queries.is_empty() {
-        if config.github.is_both_query_and_queries_set() {
-            return Err(Error::from_str(
-                "Both query and queries are set. Please set only one of them.",
-            ));
-        }
-        config.github.get_queries()
+        config.github.get_queries()?
     } else {
         queries.to_vec()
     };
