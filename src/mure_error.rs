@@ -41,8 +41,8 @@ impl From<io::Error> for Error {
     }
 }
 
-impl From<crate::misc::command_wrapper::Error> for Error {
-    fn from(e: crate::misc::command_wrapper::Error) -> Error {
+impl From<crate::command_wrapper::Error> for Error {
+    fn from(e: crate::command_wrapper::Error) -> Error {
         Error::GitCommandError(e.to_string())
     }
 }
