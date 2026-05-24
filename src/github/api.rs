@@ -160,7 +160,7 @@ fn github_api_request_with_retry<T: serde::Serialize, S: serde::de::DeserializeO
                 return Err(Error::from_str(&res.text()?));
             }
             Err(err) => {
-                if retries >= max_retries {
+                if retries + 1 >= max_retries {
                     return Err(Error::from(err));
                 }
             }
