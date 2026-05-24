@@ -148,4 +148,30 @@ mod tests {
         let result = get_editor_from_config(&config);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn test_edit_rejects_absolute_path() {
+        let config = get_test_config();
+        let result = edit(&config, "/etc".to_string());
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("simple relative name")
+        );
+    }
+
+    #[test]
+    fn test_edit_rejects_parent_traversal() {
+        let config = get_test_config();
+        let result = edit(&config, "../etc".to_string());
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("simple relative name")
+        );
+    }
 }

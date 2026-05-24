@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 
 use crate::config::{Config, ConfigSupport};
 use crate::mure_error::Error;
@@ -17,7 +17,18 @@ fn shell_shims_for_cd_directly(bin_name: &str, fn_name: &str) -> String {
     format!("function {fn_name}() {{ local p=$({bin_name} path \"$1\") && cd \"$p\" }}\n")
 }
 
+fn validate_name(name: &str) -> Result<(), Error> {
+    let path = Path::new(name);
+    if path.is_absolute() || path.components().any(|c| c == Component::ParentDir) {
+        return Err(Error::from_str(
+            "repository name must be a simple relative name (no absolute path or '..')",
+        ));
+    }
+    Ok(())
+}
+
 pub(crate) fn resolve(config: &Config, name: &str) -> Result<PathBuf, Error> {
+    validate_name(name)?;
     let path_ = config.base_path().join(name);
     if path_.is_dir() && path_.exists() {
         return Ok(path_);
@@ -64,6 +75,26 @@ mod tests {
                 .unwrap_err()
                 .to_string()
                 .ends_with("test_repo2 is not a git repository")
+        );
+
+        // absolute path must be rejected
+        let path3 = resolve(&config, "/etc");
+        assert!(path3.is_err());
+        assert!(
+            path3
+                .unwrap_err()
+                .to_string()
+                .contains("simple relative name")
+        );
+
+        // parent dir traversal must be rejected
+        let path4 = resolve(&config, "../etc");
+        assert!(path4.is_err());
+        assert!(
+            path4
+                .unwrap_err()
+                .to_string()
+                .contains("simple relative name")
         );
     }
 
