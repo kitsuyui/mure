@@ -33,6 +33,10 @@ pub fn clone(config: &Config, repo_url: &str, verbosity: Verbosity) -> Result<()
     }
 
     let link_to = config.repo_work_path(&repo_info.domain, &repo_info.owner, &repo_info.repo);
+    let Some(link_parent) = link_to.parent() else {
+        return Err(Error::from_str("invalid repo url (maybe root dir)"));
+    };
+    std_fs::create_dir_all(link_parent)?;
     match unix_fs::symlink(tobe_clone, link_to) {
         Ok(_) => Ok(()),
         Err(e) => Err(Error::from_str(&format!("failed to create symlink: {e}"))),
@@ -70,6 +74,11 @@ mod tests {
             Ok(_) => {}
             Err(_) => unreachable!(),
         }
+        assert!(
+            config
+                .repo_work_path("github.com", "kitsuyui", "mure")
+                .is_symlink()
+        );
         let config: Config = toml::from_str(&config_file).unwrap();
 
         let Err(error) = clone(&config, "", Verbosity::Normal) else {

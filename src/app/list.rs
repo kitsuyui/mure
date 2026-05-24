@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::config::{Config, ConfigSupport};
 use crate::github::repo::RepoInfo;
@@ -56,27 +56,9 @@ pub struct MureRepo {
 
 pub fn search_mure_repo(config: &Config) -> Vec<Result<MureRepo, Error>> {
     let mut repos = vec![];
-    match config.base_path().read_dir() {
-        Ok(dir) => {
-            dir.for_each(|entry| {
-                if let Ok(entry) = entry {
-                    let metadata = match std::fs::symlink_metadata(entry.path()) {
-                        Ok(metadata) => metadata,
-                        Err(_) => return,
-                    };
-                    if !metadata.is_symlink() {
-                        return;
-                    }
-                    match read_symlink_as_mure_repo(&entry.path()) {
-                        Ok(mure_repo) => repos.push(Ok(mure_repo)),
-                        Err(e) => repos.push(Err(e)),
-                    }
-                }
-            });
-        }
-        Err(_) => {
-            repos.push(Err(Error::from_str("failed to read dir")));
-        }
+    collect_mure_repos(&config.base_path(), &config.repos_store_path(), &mut repos);
+    if repos.is_empty() && !config.base_path().is_dir() {
+        repos.push(Err(Error::from_str("failed to read dir")));
     }
     repos.sort_by(|a, b| match (a, b) {
         (Ok(a), Ok(b)) => a.relative_path.cmp(&b.relative_path),
@@ -85,6 +67,57 @@ pub fn search_mure_repo(config: &Config) -> Vec<Result<MureRepo, Error>> {
         (Err(_), Err(_)) => std::cmp::Ordering::Equal,
     });
     repos
+}
+
+fn collect_mure_repos(
+    path: &Path,
+    repo_store_path: &Path,
+    repos: &mut Vec<Result<MureRepo, Error>>,
+) {
+    let Ok(dir) = path.read_dir() else {
+        return;
+    };
+    dir.for_each(|entry| {
+        let Ok(entry) = entry else {
+            return;
+        };
+        let entry_path = entry.path();
+        let metadata = match std::fs::symlink_metadata(&entry_path) {
+            Ok(metadata) => metadata,
+            Err(_) => return,
+        };
+        if metadata.is_symlink() {
+            match read_symlink_as_mure_repo(&entry_path) {
+                Ok(mure_repo) => repos.push(Ok(mure_repo)),
+                Err(e) => repos.push(Err(e)),
+            }
+        } else if metadata.is_dir() && entry_path != repo_store_path {
+            collect_mure_repos(&entry_path, repo_store_path, repos);
+        }
+    });
+}
+
+pub fn find_mure_repo(config: &Config, name: &str) -> Result<MureRepo, Error> {
+    let mut matches = search_mure_repo(config)
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter(|mure_repo| {
+            mure_repo.repo.repo == name
+                || mure_repo.repo.name_with_owner() == name
+                || mure_repo.repo.fully_qualified_name() == name
+        })
+        .collect::<Vec<_>>();
+
+    match matches.len() {
+        0 => Err(Error::from_str(
+            format!("{} is not a git repository", name).as_str(),
+        )),
+        1 => Ok(matches.remove(0)),
+        _ => Err(Error::from_str(
+            format!("multiple repositories match {name}; use owner/repo or domain/owner/repo")
+                .as_str(),
+        )),
+    }
 }
 
 fn read_symlink_as_mure_repo(path: &PathBuf) -> Result<MureRepo, Error> {
@@ -173,6 +206,107 @@ mod tests {
             assert_eq!(mure_repo.repo.domain, "github.com");
             assert_eq!(mure_repo.repo.repo, "mure");
         }
+    }
+
+    #[test]
+    fn test_find_mure_repo_by_short_and_full_names() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+
+        let config: Config = toml::from_str(
+            format!(
+                r#"
+            [core]
+            base_dir = "{}"
+
+            [github]
+            username = "kitsuyui"
+
+            [shell]
+            cd_shims = "mucd"
+        "#,
+                temp_dir.to_str().unwrap()
+            )
+            .as_str(),
+        )
+        .unwrap();
+        crate::app::clone::clone(
+            &config,
+            "https://github.com/kitsuyui/mure",
+            Verbosity::Normal,
+        )
+        .unwrap();
+
+        assert_eq!(
+            find_mure_repo(&config, "mure")
+                .unwrap()
+                .repo
+                .fully_qualified_name(),
+            "github.com/kitsuyui/mure"
+        );
+        assert_eq!(
+            find_mure_repo(&config, "kitsuyui/mure")
+                .unwrap()
+                .repo
+                .fully_qualified_name(),
+            "github.com/kitsuyui/mure"
+        );
+        assert_eq!(
+            find_mure_repo(&config, "github.com/kitsuyui/mure")
+                .unwrap()
+                .repo
+                .fully_qualified_name(),
+            "github.com/kitsuyui/mure"
+        );
+    }
+
+    #[test]
+    fn test_find_mure_repo_reports_ambiguous_short_name() {
+        let temp_dir = Temp::new_dir().expect("failed to create temp dir");
+
+        let config: Config = toml::from_str(
+            format!(
+                r#"
+            [core]
+            base_dir = "{}"
+
+            [github]
+            username = "kitsuyui"
+
+            [shell]
+            cd_shims = "mucd"
+        "#,
+                temp_dir.to_str().unwrap()
+            )
+            .as_str(),
+        )
+        .unwrap();
+        let first_store = config.repo_store_path("github.com", "alice", "project");
+        let second_store = config.repo_store_path("github.com", "bob", "project");
+        std::fs::create_dir_all(first_store.parent().unwrap()).unwrap();
+        std::fs::create_dir_all(second_store.parent().unwrap()).unwrap();
+        git2::Repository::init(&first_store).unwrap();
+        git2::Repository::init(&second_store).unwrap();
+        let first_work = config.repo_work_path("github.com", "alice", "project");
+        let second_work = config.repo_work_path("github.com", "bob", "project");
+        std::fs::create_dir_all(first_work.parent().unwrap()).unwrap();
+        std::fs::create_dir_all(second_work.parent().unwrap()).unwrap();
+        std::os::unix::fs::symlink(&first_store, first_work).unwrap();
+        std::os::unix::fs::symlink(&second_store, second_work).unwrap();
+
+        let Err(err) = find_mure_repo(&config, "project") else {
+            panic!("short repo name should be ambiguous");
+        };
+        assert!(
+            err.to_string()
+                .contains("multiple repositories match project")
+        );
+        assert_eq!(
+            find_mure_repo(&config, "alice/project")
+                .unwrap()
+                .repo
+                .fully_qualified_name(),
+            "github.com/alice/project"
+        );
     }
 
     #[test]
