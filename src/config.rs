@@ -130,7 +130,7 @@ fn create_config(path: &Path) -> Result<Config, Error> {
 /// resolve config path
 ///
 /// Resolve mure configuration path. Usually this is $HOME/.mure.toml
-fn resolve_config_path() -> Result<PathBuf, Error> {
+pub(crate) fn resolve_config_path() -> Result<PathBuf, Error> {
     // TODO: Is $HOME/.murerc better?
     // Or should try ~/.config/mure.toml?
 
