@@ -34,20 +34,22 @@ pub struct GitHub {
 }
 
 impl GitHub {
-    pub fn get_queries(&self) -> Vec<String> {
+    pub fn get_queries(&self) -> Result<Vec<String>, Error> {
+        if self.query.is_some() && self.queries.is_some() {
+            return Err(Error::from_str(
+                "Both query and queries are set. Please set only one of them.",
+            ));
+        }
         if let Some(qs) = &self.queries {
-            return qs.clone();
+            return Ok(qs.clone());
         }
         if let Some(q) = &self.query {
-            return vec![q.to_string()];
+            return Ok(vec![q.to_string()]);
         }
-        vec![format!(
+        Ok(vec![format!(
             "user:{} is:public fork:false archived:false",
             &self.username
-        )]
-    }
-    pub fn is_both_query_and_queries_set(&self) -> bool {
-        self.query.is_some() && self.queries.is_some()
+        )])
     }
 }
 
