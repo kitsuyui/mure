@@ -137,34 +137,32 @@ pub fn refresh(repo_path: &str, verbosity: Verbosity) -> Result<RefreshStatus, E
     }
 
     // TODO: origin is hardcoded. If you have multiple remotes, you need to specify which one to use.
-    let result = repo.pull_fast_forwarded("origin", &default_branch);
-    if let Ok(out) = result {
-        match out.interpreted_to {
-            PullFastForwardStatus::AlreadyUpToDate => match verbosity {
-                Verbosity::Quiet => (),
-                Verbosity::Normal => {
-                    messages.push("Already up to date".to_string());
-                }
-                Verbosity::Verbose => {
-                    messages.push("Already up to date".to_string());
-                    messages.push(out.raw.stderr);
-                    messages.push(out.raw.stdout);
-                }
-            },
-            PullFastForwardStatus::FastForwarded => match verbosity {
-                Verbosity::Quiet => (),
-                Verbosity::Normal => {
-                    messages.push("Fast-forwarded".to_string());
-                }
-                Verbosity::Verbose => {
-                    messages.push("Fast-forwarded".to_string());
-                    messages.push(out.raw.stderr);
-                    messages.push(out.raw.stdout);
-                }
-            },
-            _ => (),
-        };
-    }
+    let out = repo.pull_fast_forwarded("origin", &default_branch)?;
+    match out.interpreted_to {
+        PullFastForwardStatus::AlreadyUpToDate => match verbosity {
+            Verbosity::Quiet => (),
+            Verbosity::Normal => {
+                messages.push("Already up to date".to_string());
+            }
+            Verbosity::Verbose => {
+                messages.push("Already up to date".to_string());
+                messages.push(out.raw.stderr);
+                messages.push(out.raw.stdout);
+            }
+        },
+        PullFastForwardStatus::FastForwarded => match verbosity {
+            Verbosity::Quiet => (),
+            Verbosity::Normal => {
+                messages.push("Fast-forwarded".to_string());
+            }
+            Verbosity::Verbose => {
+                messages.push("Fast-forwarded".to_string());
+                messages.push(out.raw.stderr);
+                messages.push(out.raw.stdout);
+            }
+        },
+        _ => (),
+    };
 
     let merged_branches = repo.merged_branches()?.interpreted_to;
     let delete_branches = merged_branches
