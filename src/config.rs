@@ -5,9 +5,10 @@
 use crate::mure_error::Error;
 
 use std::{
-    fs::File,
+    fs::{self, OpenOptions},
     io::Write,
     path::{Path, PathBuf},
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 use serde_derive::{Deserialize, Serialize};
@@ -120,9 +121,42 @@ fn create_config(path: &Path) -> Result<Config, Error> {
         }),
     };
     let content = toml::to_string(&config)?;
-    let mut file = File::create(path)?;
-    file.write_all(content.as_bytes())?;
+    write_config_atomically(path, &content)?;
     Ok(config)
+}
+
+fn write_config_atomically(path: &Path, content: &str) -> Result<(), Error> {
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let file_name = path
+        .file_name()
+        .ok_or_else(|| Error::from_str("config path has no file name"))?;
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    let temp_path = parent.join(format!(
+        ".{}.tmp-{}-{timestamp}",
+        file_name.to_string_lossy(),
+        std::process::id()
+    ));
+
+    let result = (|| -> Result<(), Error> {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temp_path)?;
+        file.write_all(content.as_bytes())?;
+        file.sync_all()?;
+        drop(file);
+        fs::rename(&temp_path, path)?;
+        Ok(())
+    })();
+
+    if result.is_err() {
+        let _ = fs::remove_file(&temp_path);
+    }
+
+    result
 }
 
 /// resolve config path
@@ -229,5 +263,11 @@ pub mod tests {
             toml::from_str(&std::fs::read_to_string(config_path).unwrap()).unwrap();
         assert!(config.core.base_dir == "~/.dev");
         assert_eq!(config.github.username, "");
+        let temp_files: Vec<_> = std::fs::read_dir(temp_dir.as_path())
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_name().to_string_lossy().contains(".tmp-"))
+            .collect();
+        assert!(temp_files.is_empty());
     }
 }
