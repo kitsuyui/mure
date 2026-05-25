@@ -48,6 +48,16 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.os }}-${{ matrix.arch }}
+      - name: Validate release tag version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          package_version="$(cargo metadata --no-deps --format-version 1 | python3 -c 'import json, sys; print(json.load(sys.stdin)["packages"][0]["version"])')"
+          release_version="${GITHUB_REF_NAME#v}"
+          if [[ "$release_version" != "$package_version" ]]; then
+            echo "::error::Release tag $GITHUB_REF_NAME does not match Cargo.toml version $package_version"
+            exit 1
+          fi
       - name: Build target
         run: |
           if [[ $OS =~ ^.*ubuntu.*$ ]]; then
