@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{io::Write, path::PathBuf};
 
 use git2::Repository;
 
@@ -66,13 +66,16 @@ pub enum Reason {
 pub fn refresh_all(config: &Config, verbosity: Verbosity) -> Result<(), Error> {
     let repos = search_mure_repo(config);
     if repos.is_empty() {
-        println!("No repositories found");
+        print_refresh_all_message(verbosity, "No repositories found")?;
         return Ok(());
     }
     for repo in repos {
         match repo {
             Ok(mure_repo) => {
-                println!("> Refreshing {}", mure_repo.repo.repo);
+                print_refresh_all_message(
+                    verbosity,
+                    &format!("> Refreshing {}", mure_repo.repo.repo),
+                )?;
                 let result = refresh(
                     #[allow(clippy::expect_used)]
                     mure_repo
@@ -112,6 +115,25 @@ pub fn refresh_all(config: &Config, verbosity: Verbosity) -> Result<(), Error> {
         }
     }
     Ok(())
+}
+
+fn print_refresh_all_message(verbosity: Verbosity, message: &str) -> Result<(), Error> {
+    let mut stdout = std::io::stdout().lock();
+    write_refresh_all_message(&mut stdout, verbosity, message)
+}
+
+fn write_refresh_all_message<W: Write>(
+    writer: &mut W,
+    verbosity: Verbosity,
+    message: &str,
+) -> Result<(), Error> {
+    match verbosity {
+        Verbosity::Quiet => Ok(()),
+        Verbosity::Normal | Verbosity::Verbose => {
+            writeln!(writer, "{message}")?;
+            Ok(())
+        }
+    }
 }
 
 pub fn refresh(repo_path: &str, verbosity: Verbosity) -> Result<RefreshStatus, Error> {
@@ -296,5 +318,23 @@ mod tests {
         .unwrap();
 
         refresh_all(&config, Verbosity::Verbose).unwrap();
+    }
+
+    #[test]
+    fn test_refresh_all_message_is_hidden_in_quiet_mode() {
+        let mut output = Vec::new();
+
+        write_refresh_all_message(&mut output, Verbosity::Quiet, "No repositories found").unwrap();
+
+        assert!(output.is_empty());
+    }
+
+    #[test]
+    fn test_refresh_all_message_is_printed_in_normal_mode() {
+        let mut output = Vec::new();
+
+        write_refresh_all_message(&mut output, Verbosity::Normal, "> Refreshing mure").unwrap();
+
+        assert_eq!(String::from_utf8(output).unwrap(), "> Refreshing mure\n");
     }
 }
