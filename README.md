@@ -134,6 +134,11 @@ eval "$(mure completion --shell zsh --cd)"
 
 `mure completion --shell <shell>` also supports other shells such as `bash`, `fish`, `powershell`, and `elvish`.
 
+## Contributing
+
+`.gitignore` is auto-generated from `.gitignore.in` by the daily CI workflow.
+Edit `.gitignore.in` instead of `.gitignore` directly.
+
 ## License
 
 BSD-3-Clause
