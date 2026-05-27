@@ -183,7 +183,9 @@ pub fn refresh(repo_path: &str, verbosity: Verbosity) -> Result<RefreshStatus, E
                 messages.push(out.raw.stdout);
             }
         },
-        _ => (),
+        PullFastForwardStatus::Abort => {
+            messages.push("pull aborted: cannot fast-forward".to_string());
+        }
     };
 
     let merged_branches = repo.merged_branches()?.interpreted_to;
