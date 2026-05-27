@@ -16,11 +16,15 @@ pub fn clone(config: &Config, repo_url: &str, verbosity: Verbosity) -> Result<()
     // create dir if not exist (mkdir -p)
     std_fs::create_dir_all(tobe_clone.as_os_str())?;
 
-    let Some(parent) = tobe_clone.parent() else {
-        return Err(Error::from_str("invalid repo url (maybe root dir)"));
-    };
+    let parent = tobe_clone
+        .parent()
+        .ok_or_else(|| Error::from_str("invalid repo url (maybe root dir)"))?
+        .to_path_buf();
 
-    let result = <git2::Repository as RepositorySupport>::clone(repo_url, parent)?;
+    let result =
+        <git2::Repository as RepositorySupport>::clone(repo_url, &parent).inspect_err(|_| {
+            let _ = std_fs::remove_dir_all(&tobe_clone);
+        })?;
     match verbosity {
         Verbosity::Quiet => (),
         Verbosity::Normal => {
@@ -34,12 +38,19 @@ pub fn clone(config: &Config, repo_url: &str, verbosity: Verbosity) -> Result<()
 
     let link_to = config.repo_work_path(&repo_info.domain, &repo_info.owner, &repo_info.repo);
     let Some(link_parent) = link_to.parent() else {
+        let _ = std_fs::remove_dir_all(&tobe_clone);
         return Err(Error::from_str("invalid repo url (maybe root dir)"));
     };
-    std_fs::create_dir_all(link_parent)?;
-    match unix_fs::symlink(tobe_clone, link_to) {
+    std_fs::create_dir_all(link_parent).map_err(|e| {
+        let _ = std_fs::remove_dir_all(&tobe_clone);
+        Error::from(e)
+    })?;
+    match unix_fs::symlink(&tobe_clone, &link_to) {
         Ok(_) => Ok(()),
-        Err(e) => Err(Error::from_str(&format!("failed to create symlink: {e}"))),
+        Err(e) => {
+            let _ = std_fs::remove_dir_all(&tobe_clone);
+            Err(Error::from_str(&format!("failed to create symlink: {e}")))
+        }
     }
 }
 
