@@ -26,15 +26,31 @@ pub struct Core {
     pub editor: Option<String>,
 }
 
+/// Format string for the fallback query used when neither `query` nor `queries` is set.
+/// Substitute `{}` with the GitHub username. The resulting query limits results to
+/// public, non-fork, non-archived repositories owned by that user.
+pub const DEFAULT_QUERY_TEMPLATE: &str = "user:{} is:public fork:false archived:false";
+
 #[derive(Serialize, Deserialize)]
 pub struct GitHub {
     // TODO: try .gitconfig.user.name if not set
     pub username: String,
+    /// A single GitHub search query string. Mutually exclusive with `queries`.
     pub query: Option<String>,
+    /// Multiple GitHub search query strings. Mutually exclusive with `query`.
+    /// When set to an empty list (`queries = []`), no repositories are searched.
     pub queries: Option<Vec<String>>,
 }
 
 impl GitHub {
+    /// Return the list of GitHub search queries to use.
+    ///
+    /// Resolution order:
+    /// 1. `queries` if set (may be empty, in which case no search is performed).
+    /// 2. `query` if set (wrapped in a single-element `Vec`).
+    /// 3. [`DEFAULT_QUERY_TEMPLATE`] expanded with `username` — filters to public,
+    ///    non-fork, non-archived repositories. **This fallback excludes private and
+    ///    forked repositories.** Set `queries` or `query` explicitly to change scope.
     pub fn get_queries(&self) -> Result<Vec<String>, Error> {
         if self.query.is_some() && self.queries.is_some() {
             return Err(Error::from_str(
@@ -47,10 +63,7 @@ impl GitHub {
         if let Some(q) = &self.query {
             return Ok(vec![q.to_string()]);
         }
-        Ok(vec![format!(
-            "user:{} is:public fork:false archived:false",
-            &self.username
-        )])
+        Ok(vec![DEFAULT_QUERY_TEMPLATE.replace("{}", &self.username)])
     }
 }
 
@@ -232,6 +245,37 @@ pub mod tests {
             Ok(path) => assert_eq!(path.to_str().unwrap(), "/tmp/mure.toml"),
             Err(err) => unreachable!("{:?}", err),
         }
+    }
+
+    #[test]
+    fn test_get_queries_default_excludes_private_and_forks() {
+        // When neither query nor queries is configured, get_queries() falls back to
+        // DEFAULT_QUERY_TEMPLATE which filters to public, non-fork, non-archived repos.
+        // Users with private or forked repositories should set query/queries explicitly.
+        let github = GitHub {
+            username: "testuser".to_string(),
+            query: None,
+            queries: None,
+        };
+        let queries = github.get_queries().unwrap();
+        assert_eq!(queries.len(), 1);
+        assert_eq!(
+            queries[0],
+            "user:testuser is:public fork:false archived:false"
+        );
+    }
+
+    #[test]
+    fn test_get_queries_empty_queries_returns_empty() {
+        // Setting queries to an empty list disables repository search entirely,
+        // even though neither query nor queries carries an explicit value.
+        let github = GitHub {
+            username: "testuser".to_string(),
+            query: None,
+            queries: Some(vec![]),
+        };
+        let queries = github.get_queries().unwrap();
+        assert!(queries.is_empty());
     }
 
     #[test]
