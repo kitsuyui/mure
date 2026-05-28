@@ -80,6 +80,25 @@ pub trait ConfigSupport {
     fn resolve_cd_shims(&self) -> String;
 }
 
+pub fn validate_cd_shim_name(name: &str) -> Result<(), Error> {
+    let mut chars = name.chars();
+    let Some(first) = chars.next() else {
+        return Err(Error::from_str(
+            "shell.cd_shims must be a valid shell function name",
+        ));
+    };
+
+    if !(first == '_' || first.is_ascii_alphabetic())
+        || chars.any(|c| !(c == '_' || c.is_ascii_alphanumeric()))
+    {
+        return Err(Error::from_str(
+            "shell.cd_shims must be a valid shell function name",
+        ));
+    }
+
+    Ok(())
+}
+
 impl ConfigSupport for Config {
     fn base_path(&self) -> PathBuf {
         let expand_path = shellexpand::tilde(self.core.base_dir.as_str()).to_string();

@@ -34,7 +34,7 @@ fn main() -> Result<(), mure_error::Error> {
 
     match cli.command {
         Init { shell: true } => {
-            println!("{}", app::path::shell_shims(&config));
+            println!("{}", app::path::shell_shims(&config)?);
         }
         Init { shell: false } => match app::initialize::init() {
             Ok(_) => {
@@ -46,6 +46,7 @@ fn main() -> Result<(), mure_error::Error> {
         },
         Completion { shell, cd: true } => {
             let shim_name = config.resolve_cd_shims();
+            config::validate_cd_shim_name(&shim_name)?;
             generate_mucd_dynamic_completion(shell, &shim_name)?;
         }
         Completion { shell, cd: false } => {
@@ -105,11 +106,13 @@ fn completion_target_from_args(args: &[OsString]) -> Option<String> {
     None
 }
 
-fn resolve_cd_shim_name() -> String {
-    config::get_config()
+fn resolve_cd_shim_name() -> Result<String, mure_error::Error> {
+    let shim_name = config::get_config()
         .ok()
         .and_then(|c| c.shell.and_then(|s| s.cd_shims))
-        .unwrap_or_else(|| "mucd".to_string())
+        .unwrap_or_else(|| "mucd".to_string());
+    config::validate_cd_shim_name(&shim_name)?;
+    Ok(shim_name)
 }
 
 fn try_dynamic_completion() -> Result<bool, mure_error::Error> {
@@ -121,7 +124,7 @@ fn try_dynamic_completion() -> Result<bool, mure_error::Error> {
     }
 
     let args: Vec<OsString> = std::env::args_os().collect();
-    let shim_name = resolve_cd_shim_name();
+    let shim_name = resolve_cd_shim_name()?;
     let target = completion_target_from_args(&args);
 
     let use_mucd_command = matches!(target.as_deref(), Some("mucd"))
