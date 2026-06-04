@@ -30,12 +30,22 @@ pub struct Core {
 /// Substitute `{}` with the GitHub username. The resulting query limits results to
 /// public, non-fork, non-archived repositories owned by that user.
 pub const DEFAULT_QUERY_TEMPLATE: &str = "user:{} is:public fork:false archived:false";
+const LEGACY_QUERY_DEPRECATION_WARNING: &str = concat!(
+    "`github.query` is deprecated. ",
+    "Use `github.queries = [\"...\"]` instead; ",
+    "`github.query` is kept only for legacy config files and will be removed in a future breaking release."
+);
 
 #[derive(Serialize, Deserialize)]
 pub struct GitHub {
     // TODO: try .gitconfig.user.name if not set
     pub username: String,
-    /// A single GitHub search query string. Mutually exclusive with `queries`.
+    /// Deprecated single GitHub search query string.
+    ///
+    /// This field is mutually exclusive with `queries` and is kept only for
+    /// existing config files. New configs should use `queries`; this compatibility
+    /// shim can be removed in a future breaking release after release notes call
+    /// out the migration path.
     pub query: Option<String>,
     /// Multiple GitHub search query strings. Mutually exclusive with `query`.
     /// When set to an empty list (`queries = []`), no repositories are searched.
@@ -61,6 +71,7 @@ impl GitHub {
             return Ok(qs.clone());
         }
         if let Some(q) = &self.query {
+            eprintln!("{LEGACY_QUERY_DEPRECATION_WARNING}");
             return Ok(vec![q.to_string()]);
         }
         Ok(vec![DEFAULT_QUERY_TEMPLATE.replace("{}", &self.username)])
@@ -295,6 +306,31 @@ pub mod tests {
         };
         let queries = github.get_queries().unwrap();
         assert!(queries.is_empty());
+    }
+
+    #[test]
+    fn test_get_queries_legacy_query_returns_single_query() {
+        let github = GitHub {
+            username: "testuser".to_string(),
+            query: Some("owner:kitsuyui".to_string()),
+            queries: None,
+        };
+        let queries = github.get_queries().unwrap();
+        assert_eq!(queries, vec!["owner:kitsuyui"]);
+    }
+
+    #[test]
+    fn test_get_queries_rejects_query_and_queries() {
+        let github = GitHub {
+            username: "testuser".to_string(),
+            query: Some("owner:kitsuyui".to_string()),
+            queries: Some(vec!["owner:gitignore-in".to_string()]),
+        };
+        let err = github.get_queries().unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "Both query and queries are set. Please set only one of them."
+        );
     }
 
     #[test]
