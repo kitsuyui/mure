@@ -44,6 +44,7 @@ Generate `.mure.toml` file in home directory.
 ```toml
 [core]
 base_dir = "~/.dev"
+editor = "code"
 
 [github]
 username = "kitsuyui"
@@ -100,6 +101,32 @@ queries = [
 ### mure refresh
 
 `mure refresh` updates the repository.
+
+### mure list
+
+`mure list` shows repositories managed by mure.
+
+```bash
+mure list
+mure list --full
+mure list --path
+mure list --full --path
+```
+
+By default, `mure list` prints repository names. `--full` prints `owner/repository`
+names, `--path` prints relative repository paths, and `--full --path` prints
+absolute repository paths for scripts.
+
+### mure edit
+
+`mure edit <name>` opens a managed repository with an editor.
+
+```bash
+mure edit something
+```
+
+The editor is selected from `core.editor` in `.mure.toml`, Git `core.editor`,
+`EDITOR`, then `VISUAL`.
 
 ### mucd
 
