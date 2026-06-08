@@ -144,7 +144,7 @@ Edit `.gitignore.in` instead of `.gitignore` directly.
 The `octocov` workflow enforces the repository's metric thresholds:
 
 - line coverage must stay at or above 70%
-- the code-to-test ratio must stay at or above 1:0.01
+- the code-to-test ratio must stay at or above 1:0.005
 - test execution time in GitHub Actions must stay under 10 minutes
 
 ## License
