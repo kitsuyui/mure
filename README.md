@@ -139,6 +139,24 @@ eval "$(mure completion --shell zsh --cd)"
 `.gitignore` is auto-generated from `.gitignore.in` by the daily CI workflow.
 Edit `.gitignore.in` instead of `.gitignore` directly.
 
+## Development
+
+This repository uses [lefthook](https://lefthook.dev/) to run the same checks as CI
+locally, so problems surface before they reach CI.
+
+```sh
+# Install the Git hooks (once; requires lefthook on your PATH)
+lefthook install
+```
+
+Once installed, the hooks run automatically:
+
+- **pre-commit**: `cargo fmt --all -- --check` and `cargo clippy -- -D warnings`
+- **pre-push**: the above plus `cargo test`
+
+CI still runs the full suite (see `.github/workflows/`); the hooks only bring that
+feedback earlier on your machine.
+
 ## License
 
 BSD-3-Clause
