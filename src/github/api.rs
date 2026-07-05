@@ -20,9 +20,6 @@ type GitObjectID = String;
 )]
 pub struct SearchRepositoryQuery;
 
-const GITHUB_REPOSITORY_SEARCH_PAGE_SIZE: i64 = 100;
-const MAX_GITHUB_REPOSITORY_SEARCH_PAGES: usize = 100;
-
 pub fn search_all_repositories_by_queries(
     token: &str,
     queries: &Vec<String>,
@@ -40,6 +37,9 @@ pub fn search_all_repositories(
     token: &str,
     query: &str,
 ) -> Result<Vec<search_repository_query::SearchRepositoryQueryReposEdgesNodeOnRepository>, Error> {
+    const GITHUB_REPOSITORY_SEARCH_PAGE_SIZE: i64 = 100;
+    const MAX_GITHUB_REPOSITORY_SEARCH_PAGES: i32 = 100;
+
     let mut results =
         vec![] as Vec<search_repository_query::SearchRepositoryQueryReposEdgesNodeOnRepository>;
 
