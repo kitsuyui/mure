@@ -37,15 +37,18 @@ pub fn search_all_repositories(
     token: &str,
     query: &str,
 ) -> Result<Vec<search_repository_query::SearchRepositoryQueryReposEdgesNodeOnRepository>, Error> {
+    const GITHUB_REPOSITORY_SEARCH_PAGE_SIZE: i64 = 100;
+    const MAX_GITHUB_REPOSITORY_SEARCH_PAGES: i32 = 100;
+
     let mut results =
         vec![] as Vec<search_repository_query::SearchRepositoryQueryReposEdgesNodeOnRepository>;
 
     let mut cursor = None as Option<String>;
-    let mut count = 0;
+    let mut pages_fetched = 0;
     loop {
         let variables = search_repository_query::Variables {
             query: query.to_string(),
-            first: 100,
+            first: GITHUB_REPOSITORY_SEARCH_PAGE_SIZE,
             cursor,
         };
         let response = search_repositories(token, variables);
@@ -78,9 +81,9 @@ pub fn search_all_repositories(
                 return Err(err);
             }
         }
-        count += 1;
-        if count > 100 {
-            // Avoid infinite loop to prevent reaching github api limit.
+        pages_fetched += 1;
+        if pages_fetched > MAX_GITHUB_REPOSITORY_SEARCH_PAGES {
+            // Keep the local page-count guard separate from the GitHub per-page size.
             break;
         }
     }
