@@ -137,6 +137,17 @@ fn write_refresh_all_message<W: Write>(
 }
 
 pub fn refresh(repo_path: &str, verbosity: Verbosity) -> Result<RefreshStatus, Error> {
+    refresh_with_default_branch_resolver(repo_path, verbosity, get_default_branch)
+}
+
+fn refresh_with_default_branch_resolver<F>(
+    repo_path: &str,
+    verbosity: Verbosity,
+    resolve_default_branch: F,
+) -> Result<RefreshStatus, Error>
+where
+    F: Fn(&PathBuf) -> Result<String, Error>,
+{
     let mut messages = vec![];
     if !PathBuf::from(repo_path).join(".git").exists() {
         return Ok(RefreshStatus::DoNothing(Reason::NotGitRepository));
@@ -147,7 +158,7 @@ pub fn refresh(repo_path: &str, verbosity: Verbosity) -> Result<RefreshStatus, E
         return Ok(RefreshStatus::DoNothing(Reason::NoRemote));
     }
 
-    let default_branch = get_default_branch(&repo_path.into())?;
+    let default_branch = resolve_default_branch(&repo_path.into())?;
 
     repo.fetch_prune()?;
 
@@ -236,18 +247,12 @@ mod tests {
             .unwrap();
         fixture.repo.command(&["fetch", "origin"]).unwrap();
         fixture.repo.command(&["switch", "main"]).unwrap();
-        fixture
-            .repo
-            .command(&[
-                "remote",
-                "set-url",
-                "origin",
-                "https://github.com/kitsuyui/mure.git",
-            ])
-            .unwrap();
         let path = fixture.repo.path().parent().unwrap();
 
-        let result = refresh(path.to_str().unwrap(), Verbosity::Normal);
+        let result =
+            refresh_with_default_branch_resolver(path.to_str().unwrap(), Verbosity::Normal, |_| {
+                Ok("main".to_string())
+            });
         match result {
             Ok(RefreshStatus::Update {
                 switch_to_default, ..
@@ -259,6 +264,26 @@ mod tests {
         }
         drop(fixture_origin);
         drop(fixture);
+    }
+
+    #[test]
+    fn test_refresh_propagates_default_branch_resolver_error() {
+        let fixture = Fixture::create().unwrap();
+        fixture
+            .repo
+            .remote("origin", "https://github.com/kitsuyui/mure.git")
+            .unwrap();
+        let path = fixture.repo.path().parent().unwrap();
+
+        let result =
+            refresh_with_default_branch_resolver(path.to_str().unwrap(), Verbosity::Normal, |_| {
+                Err(Error::from_str("default branch unavailable"))
+            });
+
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "default branch unavailable"
+        );
     }
 
     #[test]
