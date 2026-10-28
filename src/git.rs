@@ -79,9 +79,7 @@ impl RepositorySupport for Repository {
         }
         let head = self.head()?;
 
-        let Some(name) = head.shorthand() else {
-            return Err(mure_error::Error::from_str("head is not a branch"));
-        };
+        let name = head.shorthand()?;
         let branch = self.find_branch(name, BranchType::Local)?;
         let Some(branch_name) = branch.name()? else {
             return Err(mure_error::Error::from_str("branch name is not found"));
@@ -339,6 +337,18 @@ mod tests {
             unreachable!();
         };
         assert!(branch_name == "main" || branch_name == "master");
+    }
+
+    #[test]
+    fn test_get_current_branch_returns_error_for_detached_head() {
+        let fixture = Fixture::create().unwrap();
+        let repo = &fixture.repo;
+
+        fixture.create_empty_commit("initial commit").unwrap();
+        repo.command(&["checkout", "--detach"])
+            .expect("failed to detach HEAD");
+
+        assert!(repo.get_current_branch().is_err());
     }
 
     #[test]
