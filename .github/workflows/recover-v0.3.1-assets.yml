@@ -1,0 +1,66 @@
+name: Recover v0.3.1 release assets
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  recover:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify the original release run and tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          test "$GH_REPO" = kitsuyui/mure
+          run_sha=$(gh run view 40529494456 --json headSha --jq .headSha)
+          tag_sha=$(gh api "repos/$GH_REPO/commits/v0.3.1" --jq .sha)
+          test "$run_sha" = 7a25d01c54cafa7881bd4d56ec988b8f31e0f705
+          test "$tag_sha" = "$run_sha"
+          gh run view 40529494456 --json conclusion,event,headBranch \
+            --jq 'select(.conclusion == "success" and .event == "release" and .headBranch == "v0.3.1") | .headBranch' | grep -Fx v0.3.1
+      - name: Download the original Actions artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts downloads
+          gh api "repos/$GH_REPO/actions/runs/40529494456/artifacts" \
+            --jq '.artifacts[] | select(.name == "result" and .expired == false) | .id' > artifact-ids.txt
+          test "$(wc -l < artifact-ids.txt | tr -d ' ')" = 6
+          while IFS= read -r id; do
+            gh api "repos/$GH_REPO/actions/artifacts/$id/zip" > "downloads/$id.zip"
+            mkdir "downloads/$id"
+            unzip -q -j "downloads/$id.zip" -d "downloads/$id"
+            for file in "downloads/$id"/*.tar.gz; do
+              test -f "$file"
+              name=$(basename "$file")
+              test ! -e "artifacts/$name"
+              cp "$file" "artifacts/$name"
+            done
+          done < artifact-ids.txt
+      - name: Verify and attach missing targets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view v0.3.1 --json assets --jq '.assets[].name' > existing-assets.txt
+          for arch in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu armv7-unknown-linux-gnueabihf arm-unknown-linux-gnueabihf x86_64-apple-darwin aarch64-apple-darwin; do
+            name="mure-${arch}-v0.3.1.tar.gz"
+            test -f "./artifacts/$name" || { echo "Missing original artifact: $name" >&2; exit 1; }
+          done
+          for arch in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu armv7-unknown-linux-gnueabihf arm-unknown-linux-gnueabihf x86_64-apple-darwin aarch64-apple-darwin; do
+            name="mure-${arch}-v0.3.1.tar.gz"
+            if ! grep -Fxq "$name" existing-assets.txt; then
+              gh release upload v0.3.1 "./artifacts/$name"
+            fi
+          done
