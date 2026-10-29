@@ -92,7 +92,7 @@ jobs:
         name: Archive artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: result
+          name: result-${{ matrix.arch }}
           path: |
             ./artifacts
 
@@ -104,11 +104,22 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: result
+          pattern: result-*
+          merge-multiple: true
           path: ./artifacts
       - name: List
         run: find ./artifacts
+      - name: Verify all release targets
+        shell: bash
+        run: |
+          for arch in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu armv7-unknown-linux-gnueabihf arm-unknown-linux-gnueabihf x86_64-apple-darwin aarch64-apple-darwin; do
+            test -f "./artifacts/mure-${arch}-${GITHUB_REF_NAME}.tar.gz" || {
+              echo "Missing release artifact for ${arch}" >&2
+              exit 1
+            }
+          done
       - name: Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: ./artifacts/*.tar.gz
+          fail_on_unmatched_files: true

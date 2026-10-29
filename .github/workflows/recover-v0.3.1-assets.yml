@@ -1,0 +1,52 @@
+name: Recover v0.3.1 release assets
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  recover:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify the original release run and tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          test "$GH_REPO" = kitsuyui/mure
+          run_sha=$(gh run view 40529494456 --json headSha --jq .headSha)
+          tag_sha=$(gh api "repos/$GH_REPO/commits/v0.3.1" --jq .sha)
+          test "$run_sha" = 7a25d01c54cafa7881bd4d56ec988b8f31e0f705
+          test "$tag_sha" = "$run_sha"
+          gh run view 40529494456 --json conclusion,event,headBranch \
+            --jq 'select(.conclusion == "success" and .event == "release" and .headBranch == "v0.3.1") | .headBranch' | grep -Fx v0.3.1
+      - name: Download the original Actions artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          run-id: 40529494456
+          github-token: ${{ github.token }}
+          pattern: result
+          merge-multiple: true
+          path: ./artifacts
+      - name: Verify and attach missing targets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view v0.3.1 --json assets --jq '.assets[].name' > existing-assets.txt
+          for arch in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu armv7-unknown-linux-gnueabihf arm-unknown-linux-gnueabihf x86_64-apple-darwin aarch64-apple-darwin; do
+            name="mure-${arch}-v0.3.1.tar.gz"
+            test -f "./artifacts/$name" || { echo "Missing original artifact: $name" >&2; exit 1; }
+          done
+          for arch in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu armv7-unknown-linux-gnueabihf arm-unknown-linux-gnueabihf x86_64-apple-darwin aarch64-apple-darwin; do
+            name="mure-${arch}-v0.3.1.tar.gz"
+            if ! grep -Fxq "$name" existing-assets.txt; then
+              gh release upload v0.3.1 "./artifacts/$name"
+            fi
+          done
