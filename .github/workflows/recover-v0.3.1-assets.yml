@@ -25,13 +25,27 @@ jobs:
           gh run view 40529494456 --json conclusion,event,headBranch \
             --jq 'select(.conclusion == "success" and .event == "release" and .headBranch == "v0.3.1") | .headBranch' | grep -Fx v0.3.1
       - name: Download the original Actions artifacts
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          run-id: 40529494456
-          github-token: ${{ github.token }}
-          pattern: result
-          merge-multiple: true
-          path: ./artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts downloads
+          gh api "repos/$GH_REPO/actions/runs/40529494456/artifacts" \
+            --jq '.artifacts[] | select(.name == "result" and .expired == false) | .id' > artifact-ids.txt
+          test "$(wc -l < artifact-ids.txt | tr -d ' ')" = 6
+          while IFS= read -r id; do
+            gh api "repos/$GH_REPO/actions/artifacts/$id/zip" > "downloads/$id.zip"
+            mkdir "downloads/$id"
+            unzip -q -j "downloads/$id.zip" -d "downloads/$id"
+            for file in "downloads/$id"/*.tar.gz; do
+              test -f "$file"
+              name=$(basename "$file")
+              test ! -e "artifacts/$name"
+              cp "$file" "artifacts/$name"
+            done
+          done < artifact-ids.txt
       - name: Verify and attach missing targets
         env:
           GH_TOKEN: ${{ github.token }}
