@@ -48,7 +48,7 @@ jobs:
       - run: cargo fmt --all -- --check
 
   actionlint:
-    uses: kitsuyui/gh-actions-workflows/.github/workflows/actionlint.yml@36728609c2c48e73b25172ed650de9437a0dfad8 # main
+    uses: kitsuyui/gh-actions-workflows/.github/workflows/actionlint.yml@227436e0e71af44b300e63b4bdab1d388a29ee54 # main
     with:
       shellcheck: disabled
   lint:
